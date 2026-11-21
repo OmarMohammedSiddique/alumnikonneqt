@@ -81,11 +81,9 @@ export async function beginGoogleSignIn(auth: Pick<Auth, "signInWithOAuth">, cal
 }
 
 export async function finishGoogleSignIn(params: URLSearchParams, auth: Pick<Auth, "exchangeCodeForSession">): Promise<GoogleAuthError | null> {
-  // The hosted hook predates the product rename. Recognise both exact messages;
-  // never reflect arbitrary provider descriptions or relax the registration rule.
-  if (params.has("error") && [GOOGLE_REGISTRATION_REQUIRED_MESSAGE,
-    "Register with AlumniConnect before signing in with Google.",
-  ].includes(params.get("error_description") ?? "")) return "registration_required";
+  // Recognise only the exact hook message; never reflect arbitrary provider
+  // descriptions or relax the registration rule.
+  if (params.has("error") && params.get("error_description") === GOOGLE_REGISTRATION_REQUIRED_MESSAGE) return "registration_required";
   if (params.has("error")) return params.get("error") === "access_denied" ? "cancelled" : "exchange_failed";
   const code = params.get("code");
   if (!code || code.length > 2048) return "exchange_failed";
