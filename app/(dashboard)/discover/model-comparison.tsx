@@ -70,7 +70,8 @@ export function ModelComparison({ view = "list", canRequest, requestMap, onReque
           <h2 className="text-xl font-medium">Two models, one mentor pool</h2>
           <p className="text-sm text-muted-foreground">
             Both models rank mentors using your saved headline, bio, skills, and industry.
-            Your trained model is an experimental pilot trained on unreviewed synthetic labels.
+            Your trained model (version 3) is experimental. It was trained from random weights on synthetic
+            profiles with generated labels that no person has reviewed.
           </p>
           <p className="text-sm text-muted-foreground">
             Scores show similarity within each model, not accuracy or a probability of mentorship success.
@@ -95,7 +96,7 @@ export function ModelComparison({ view = "list", canRequest, requestMap, onReque
         <div className={view === "passes" ? "grid min-w-0 gap-10" : "grid min-w-0 gap-8 xl:grid-cols-2"}>
           {result.models.map((model) => <section key={model.id} aria-label={`${model.name} results`} className="min-w-0 space-y-4">
             <header className="space-y-1 border-b pb-3">
-              <h3 className="text-lg font-medium">{model.name}{model.dimensions === 64 ? " · Experimental" : " · Pretrained"}</h3>
+              <h3 className="text-lg font-medium">{model.name}{model.id.startsWith("scratch-") ? " · Experimental" : " · Pretrained"}</h3>
               <p className="text-xs text-muted-foreground">{model.dimensions} dimensions · {model.elapsedMs.toLocaleString()} ms</p>
               <p className="break-all text-xs text-muted-foreground">Version: {model.id}</p>
             </header>

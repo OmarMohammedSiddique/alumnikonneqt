@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClockStrip } from "@/components/nairobi-clock";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { Brand, PrototypeNotice } from "@/components/brand";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -46,6 +47,7 @@ export default async function LandingPage() {
       <a className={styles.skipLink} href="#main">Skip to content</a>
       <div className={styles.identityBar} role="region" aria-label="Academic prototype notice"><div className={styles.container}><span>An independent academic prototype</span></div></div>
       <header className={styles.header}>
+        <ClockStrip />
         <div className={styles.navbar}>
           <Link href="/" aria-label="AlumniKonneQt home"><Brand className={styles.brand} imageClassName="h-10 sm:h-12" /></Link>
           <nav className={styles.navLinks} aria-label="Main navigation">

@@ -1,11 +1,11 @@
 # AlumniKonneQt
 
-[![CI](https://github.com/OmarMohammedSiddique/alumniconnect/actions/workflows/ci.yml/badge.svg)](https://github.com/OmarMohammedSiddique/alumniconnect/actions/workflows/ci.yml)
+[![CI](https://github.com/OmarMohammedSiddique/alumnikonneqt/actions/workflows/ci.yml/badge.svg)](https://github.com/OmarMohammedSiddique/alumnikonneqt/actions/workflows/ci.yml)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-pgvector-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 
-[🌐 Open the live demo](https://alumniconnect-kq.vercel.app)
+[🌐 Open the live demo](https://alumnikonneqt.com)
 
 ![AlumniKonneQt landing page preview](public/images/landing-preview.jpg)
 
@@ -73,6 +73,7 @@ for the methodology and recorded results.
 | Recommendations | Transformers.js, MiniLM, pgvector |
 | Motion and visuals | GSAP, React Three Fiber, Three.js |
 | Quality | ESLint, TypeScript, GitHub Actions |
+| Error tracking | Sentry (errors only, optional) |
 
 ## Getting started
 
@@ -88,8 +89,8 @@ for the methodology and recorded results.
 1. Clone the repository and install dependencies.
 
    ```bash
-   git clone https://github.com/OmarMohammedSiddique/alumniconnect.git
-   cd alumniconnect
+   git clone https://github.com/OmarMohammedSiddique/alumnikonneqt.git
+   cd alumnikonneqt
    npm ci
    ```
 
@@ -127,6 +128,10 @@ The first embedding request downloads the model and requires internet access.
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | Supabase API URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | Browser-safe anonymous key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Embedding and privileged database operations |
+| `DEMO_SWITCHER_ENABLED` | Server only | When `true` (and a key is set), a presenter can unlock one-click switching between fictional demo accounts at `/demo`. Only accounts with `app_metadata.fictional = true` can be reached. See [demo mode](docs/guides/demo-mode.md) |
+| `DEMO_SWITCHER_KEY` | Server only | Presenter key for demo mode, at least 16 characters |
+| `NEXT_PUBLIC_SENTRY_DSN` | Public | Optional Sentry DSN. When empty, error tracking is off. Browser reports also need analytics consent |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Build only | Set by the Vercel Sentry integration for source map upload. Not needed locally or in CI |
 
 Use [.env.example](.env.example) as the template. `.env.local` is ignored by
 Git and must never be committed.
@@ -142,7 +147,8 @@ Git and must never be committed.
 | `npm test` | Run the application unit/regression tests (`lib/*.test.mjs`); exits nonzero on failure |
 | `npm run check` | Run lint, type checking, unit tests, and the production build |
 | `npm run smoke:local` | Verify the local HTTP/API/database mentorship workflow using disposable accounts |
-| `node scripts/seed-dev.mjs` | Add local mentor profiles and embeddings |
+| `node scripts/seed-dev.mjs` | Add fictional local Mentor and Mentee profiles with embeddings (marked for the demo switcher) |
+| `node scripts/end-demo-sessions.mjs` | After a demo, sign fictional demo accounts out everywhere (dry run unless `--apply`) |
 | `node scripts/eval/run-eval.mjs` | Reproduce the matching evaluation |
 
 ## Verification

@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -5,7 +6,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "onnxruntime-common"],
   outputFileTracingIncludes: {
     "/api/match/compare": [
-      "./ml/models/scratch-pilot-v1/encoder.onnx",
+      "./ml/models/scratch-v3/encoder.onnx",
+      "./ml/models/scratch-v3/tokenizer.json",
       "./node_modules/onnxruntime-node/**/*",
       "./node_modules/onnxruntime-common/**/*",
     ],
@@ -18,4 +20,9 @@ const nextConfig: NextConfig = {
   logging: { incomingRequests: { ignore: [/^\/auth\/callback(?:[/?]|$)/] } },
 };
 
-export default nextConfig;
+// Source maps are uploaded only where the Vercel integration provides
+// SENTRY_AUTH_TOKEN, SENTRY_ORG and SENTRY_PROJECT. Local and CI builds skip it.
+export default withSentryConfig(nextConfig, {
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  telemetry: false,
+});
