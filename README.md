@@ -140,7 +140,7 @@ Git and must never be committed.
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Start the Turbopack development server |
+| `npm run dev` | Start the Turbopack development server. If the optional `akq-azure` helper is installed, it first wakes the Azure development database and opens its tunnel |
 | `npm run lint` | Run ESLint |
 | `npm run typecheck` | Validate TypeScript without emitting files |
 | `npm run build` | Create an optimized production build |
