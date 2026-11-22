@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition, type RefObject } from "react";
 import { AlertTriangle, ShieldAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { blockMemberAction } from "@/app/(dashboard)/actions/safety";
+import { useModalFocus } from "@/lib/use-modal-focus";
 
 interface BlockDialogProps {
   targetId: string;
@@ -11,6 +12,7 @@ interface BlockDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onBlocked?: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }
 
 export function BlockDialog({
@@ -19,18 +21,12 @@ export function BlockDialog({
   isOpen,
   onClose,
   onBlocked,
+  returnFocusRef,
 }: BlockDialogProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  const dialogRef = useModalFocus<HTMLDivElement>({ isOpen, onClose, returnFocusRef });
 
   if (!isOpen) return null;
 
@@ -52,6 +48,8 @@ export function BlockDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="block-dialog-title"
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
     >
       <div
@@ -102,6 +100,7 @@ export function BlockDialog({
           <Button
             type="button"
             variant="outline"
+            data-autofocus
             onClick={onClose}
             disabled={isPending}
           >
