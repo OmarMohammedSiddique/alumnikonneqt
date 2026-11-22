@@ -104,6 +104,7 @@ export default async function LandingPage() {
           <p>A Strathmore University academic prototype.</p>
           <nav aria-label="Footer navigation" className="flex flex-wrap items-center gap-5">
             <Link href="/about-developer">About Developer</Link>
+            <Link href="/contact">Contact</Link>
             <Link href="/privacy">Privacy Policy</Link>
             <CookieSettingsTrigger />
             <a href="#how-it-works">How it works</a>
