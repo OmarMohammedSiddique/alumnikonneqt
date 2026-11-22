@@ -835,6 +835,12 @@ begin
     raise exception 'FAIL 21c: mentee redirected the request while cancelling';
   exception when insufficient_privilege then null;
   end;
+  begin
+    insert into public.mentorship_requests (mentee_id, mentor_id, message, created_at)
+    values (auth.uid(), '00000000-0000-0000-0000-000000000003', 'backdated', now() - interval '5 days');
+    raise exception 'FAIL 21c: mentee backdated a new request';
+  exception when insufficient_privilege then null;
+  end;
   update public.mentorship_requests set status = 'cancelled'
   where id = '00000000-0000-0000-0000-0000000000a1';
   get diagnostics affected = row_count;

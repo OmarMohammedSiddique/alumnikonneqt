@@ -180,7 +180,9 @@ grant insert (reporter_id, reported_id, reason, details) on public.reports to au
 -- 3. Requests: the only direct update is a mentee cancelling, status only
 -- ---------------------------------------------------------------------------
 revoke all on public.mentorship_requests from authenticated;
-grant select, insert on public.mentorship_requests to authenticated;
+grant select on public.mentorship_requests to authenticated;
+-- Not created_at or responded_at: a backdated request would trigger an early reminder.
+grant insert (id, mentee_id, mentor_id, message) on public.mentorship_requests to authenticated;
 grant update (status) on public.mentorship_requests to authenticated;
 
 -- ---------------------------------------------------------------------------
