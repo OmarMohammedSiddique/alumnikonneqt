@@ -159,6 +159,8 @@ try {
   await save(second,{'Headline':'Database systems Mentor','Skills':'PostgreSQL'});
   await mentee.page.reload();
   await mentee.page.getByRole('button',{name:'Recommended',exact:true}).click();
+  // The default Passes layout shows actions for the selected Mentor only, and the first is already connected.
+  await mentee.page.getByRole('group',{name:'Result layout'}).getByRole('button',{name:'List',exact:true}).click();
   await mentee.page.getByRole('button',{name:'Request mentorship',exact:true}).first().click();
   await mentee.page.getByRole('button',{name:'Send request',exact:true}).click();
   for(let i=0;i<100;i++){
