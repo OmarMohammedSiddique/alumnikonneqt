@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState, type RefObject } from "react";
+import { useActionState, useEffect, useId, useRef, useState, type RefObject } from "react";
 import { AlertCircle, CheckCircle2, Flag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -52,6 +52,12 @@ export function ReportDialog({
   }, [state.ok, onReportSubmitted]);
 
   const dialogRef = useModalFocus<HTMLDivElement>({ isOpen, onClose, returnFocusRef });
+  const doneRef = useRef<HTMLButtonElement>(null);
+
+  // The form, and the button that held focus, are removed on success.
+  useEffect(() => {
+    if (state.ok) doneRef.current?.focus();
+  }, [state.ok]);
 
   if (!isOpen) return null;
 
@@ -93,7 +99,7 @@ export function ReportDialog({
 
         {state.ok ? (
           <div className="space-y-4 py-2">
-            <div className="flex items-start gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-4 text-green-700 dark:text-green-300">
+            <div role="status" className="flex items-start gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-4 text-green-700 dark:text-green-300">
               <CheckCircle2 className="size-5 shrink-0 mt-0.5" />
               <div className="text-sm">
                 <p className="font-medium">Report submitted</p>
@@ -104,7 +110,7 @@ export function ReportDialog({
               </div>
             </div>
             <div className="flex justify-end pt-2">
-              <Button type="button" onClick={onClose}>
+              <Button type="button" ref={doneRef} onClick={onClose}>
                 Done
               </Button>
             </div>
