@@ -49,7 +49,10 @@ async function signup(role, label) {
   await page.locator(`input[name="role"][value="${role}"]`).check();
   const start = performance.now();
   await page.getByRole('button',{name:'Create account',exact:true}).click();
+  // Signup now ends on an arrival pass; the visitor continues to the profile from there.
+  await page.getByRole('button',{name:'Continue to your profile',exact:false}).click();
   await page.waitForURL('**/profile');
+  // This timing includes the arrival animation since the window-seat redesign.
   timings.push({ operation: 'scripted-signup-submit-to-profile', elapsedMs: Math.round(performance.now()-start) });
   const users=ok(await admin.auth.admin.listUsers({page:1,perPage:100}),'Find disposable signup').users;
   const user=users.find(u=>u.email===email); assert.ok(user);
