@@ -24,5 +24,18 @@
       "Read(./.env.local)",
       "Read(./.env.hosted-demo-access.json)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{ command -v akq-azure && nohup akq-azure up; } >/dev/null 2>&1 </dev/null & exit 0"
+          }
+        ]
+      }
+    ]
   }
 }

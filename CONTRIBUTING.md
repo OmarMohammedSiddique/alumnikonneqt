@@ -8,7 +8,8 @@ reviewable, and consistent with the project's security model.
 1. Create a branch from the latest default branch.
 2. Install dependencies with `npm ci`.
 3. Start Docker Desktop and run `npx supabase start` when database features are
-   involved.
+   involved. On the maintainer's machine, run `akq-azure up` instead: the
+   development database lives on an Azure VM and never in local Docker.
 4. Copy `.env.example` to `.env.local` and add the local Supabase credentials.
 5. Make a focused change with clear commit messages.
 6. Run `npm run check` before opening a pull request.
