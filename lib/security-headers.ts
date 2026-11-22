@@ -15,6 +15,7 @@ export interface SecurityHeader {
 }
 
 const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+const VERCEL_DEV_SCRIPTS_ORIGIN = "https://va.vercel-scripts.com";
 
 function originOf(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -45,7 +46,15 @@ export function buildReportOnlyContentSecurityPolicy(env: Env): string {
     // scripts Next.js emits; removing it means moving to nonces.
     [
       "script-src",
-      unique(["'self'", "'unsafe-inline'", isDev ? "'unsafe-eval'" : undefined, TURNSTILE_ORIGIN]),
+      unique([
+        "'self'",
+        "'unsafe-inline'",
+        isDev ? "'unsafe-eval'" : undefined,
+        TURNSTILE_ORIGIN,
+        // Vercel serves its analytics scripts from the site itself in
+        // production and from this host in development.
+        isDev ? VERCEL_DEV_SCRIPTS_ORIGIN : undefined,
+      ]),
     ],
     ["style-src", ["'self'", "'unsafe-inline'"]],
     ["img-src", unique(["'self'", "data:", "blob:", supabase])],
