@@ -28,10 +28,11 @@
   "hooks": {
     "SessionStart": [
       {
+        "matcher": "startup|resume",
         "hooks": [
           {
             "type": "command",
-            "command": "command -v akq-azure >/dev/null 2>&1 && nohup akq-azure up >/dev/null 2>&1 & exit 0"
+            "command": "{ command -v akq-azure && nohup akq-azure up; } >/dev/null 2>&1 </dev/null & exit 0"
           }
         ]
       }
