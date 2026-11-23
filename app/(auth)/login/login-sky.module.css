@@ -44,7 +44,6 @@
 @media(max-width:600px){.authLayout:has([data-sky-login], [data-sky-account]){padding:20px 20px 28px}.authLayout:has([data-sky-login], [data-sky-account])>main>header{margin-bottom:24px}.journey{--card-radius:40px;--card-padding:24px}.heading h1{font-size:21px}.stage{min-height:600px}.ticket{grid-template-columns:minmax(0,1fr) 80px}.ticketMain{padding:24px 16px}.ticketStub{padding:24px 10px}.ticketHeading{font-size:13px}.ticketHeading>span:last-child{font-size:9px}.route{gap:8px;margin:28px 0}.route strong{font-size:32px}.route span{font-size:10px}.route svg{width:20px;flex-shrink:0}.ticketInfo{grid-template-columns:1fr;gap:16px}.ticketInfo p{font-size:12px}.ticketStub strong{font-size:17px;letter-spacing:-.6px}.ticketStub span{font-size:9px}.ticketNote{font-size:11px}.ticketActions p{font-size:10px}}
 :global(.dark) .sky:after{background:linear-gradient(180deg,#0d2338b3,#142e45a6 50%,#18354bb3)}
 :global(.dark) .authLayout:has([data-sky-login], [data-sky-account])>main>footer,:global(.dark) .authLayout:has([data-sky-login], [data-sky-account])>main>footer p{color:#d5e4ef}
-:global(.dark) .authLayout:has([data-sky-login], [data-sky-account])>main>header a{color:#e4eef5}
 @media(prefers-reduced-motion:reduce){.journey *,.journey *:before{animation:none!important;transition:none!important}.passwordWrap:has(input:focus) .shackle{transform:translateY(-2px) rotate(32deg)}}
 
 /* Registration shares the arrival material and control geometry with login. */
