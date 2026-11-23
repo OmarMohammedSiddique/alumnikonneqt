@@ -11,7 +11,7 @@ export default async function LoginPage() {
   return (
     <>
       <Suspense fallback={<LoadingState label="Loading sign-in form" />}>
-        <LoginForm emailOtpEnabled={process.env.EMAIL_OTP_ENABLED === "true"} accountEmailEnabled={process.env.ACCOUNT_EMAIL_ENABLED === "true"} />
+        <LoginForm previewEnabled={process.env.NODE_ENV === "development"} emailOtpEnabled={process.env.EMAIL_OTP_ENABLED === "true"} accountEmailEnabled={process.env.ACCOUNT_EMAIL_ENABLED === "true"} />
       </Suspense>
       <DemoSwitcher accounts={demoAccounts} variant="panel" />
     </>

@@ -14,7 +14,7 @@ export default function WorkspaceError({ error, retry }: { error: Error & { dige
 
   return (
     <div className="mx-auto grid max-w-xl gap-5 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">We couldn’t load this page</h1>
+      <h1 className="text-2xl font-medium tracking-tight">We couldn’t load this page</h1>
       <StatusMessage tone="error">Please try again. If the issue continues, return to the homepage and sign in again.</StatusMessage>
       <div className="flex flex-wrap gap-3">
         <Button onClick={() => retry()}>Try again</Button>

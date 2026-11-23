@@ -49,7 +49,10 @@ async function signup(role, label) {
   await page.locator(`input[name="role"][value="${role}"]`).check();
   const start = performance.now();
   await page.getByRole('button',{name:'Create account',exact:true}).click();
+  // Signup now ends on an arrival pass; the visitor continues to the profile from there.
+  await page.getByRole('button',{name:'Continue to your profile',exact:false}).click();
   await page.waitForURL('**/profile');
+  // This timing includes the arrival animation since the window-seat redesign.
   timings.push({ operation: 'scripted-signup-submit-to-profile', elapsedMs: Math.round(performance.now()-start) });
   const users=ok(await admin.auth.admin.listUsers({page:1,perPage:100}),'Find disposable signup').users;
   const user=users.find(u=>u.email===email); assert.ok(user);
@@ -156,6 +159,8 @@ try {
   await save(second,{'Headline':'Database systems Mentor','Skills':'PostgreSQL'});
   await mentee.page.reload();
   await mentee.page.getByRole('button',{name:'Recommended',exact:true}).click();
+  // The default Passes layout shows actions for the selected Mentor only, and the first is already connected.
+  await mentee.page.getByRole('group',{name:'Result layout'}).getByRole('button',{name:'List',exact:true}).click();
   await mentee.page.getByRole('button',{name:'Request mentorship',exact:true}).first().click();
   await mentee.page.getByRole('button',{name:'Send request',exact:true}).click();
   for(let i=0;i<100;i++){
