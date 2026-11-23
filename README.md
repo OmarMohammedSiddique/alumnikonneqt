@@ -75,6 +75,7 @@ for the methodology and recorded results.
 | Motion and visuals | GSAP, React Three Fiber, Three.js |
 | Quality | ESLint, TypeScript, GitHub Actions |
 | Error tracking | Sentry (errors only, optional) |
+| Hosting and measurement | Vercel, Web Analytics and Speed Insights (both only after analytics consent) |
 
 ## Getting started
 
@@ -100,6 +101,11 @@ for the methodology and recorded results.
    ```bash
    npx supabase start
    ```
+
+   On the maintainer's machine the development stack runs on an Azure VM
+   instead, and nothing runs in local Docker. The optional `akq-azure` helper
+   starts the VM and opens a tunnel on the same ports, `npm run dev` calls it,
+   and the VM switches itself off after 45 idle minutes.
 
 3. Create the local environment file.
 

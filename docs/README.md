@@ -38,6 +38,7 @@ Where each document lives and what it is for. Dated working notes go in `notes/`
 | Location | What it holds |
 | --- | --- |
 | [verification/](verification/) | Verification records for sign-in, email, cold start, consent, the hosted demo and the v3 model comparison (`verification/ml-scratch-v3/`) |
+| [verification/security-review-2026-11-22.md](verification/security-review-2026-11-22.md) | Security, privacy, legal and accessibility review of 22 November 2026, with fixes and open issues |
 | [environment-verification.md](environment-verification.md) | Local environment verification |
 | [dependency-review-2026-11-04.md](dependency-review-2026-11-04.md) | Dependency alert review |
 
@@ -45,7 +46,7 @@ Where each document lives and what it is for. Dated working notes go in `notes/`
 
 | Location | What it holds |
 | --- | --- |
-| [guides/](guides/) | How-to guides (demo mode, the overnight loop) |
-| [notes/](notes/) | Dated working notes, including the overnight ML run summary of 17 November 2026 |
+| [guides/](guides/) | How-to guides (demo mode, the overnight loop) and the secrets inventory ([guides/secrets.md](guides/secrets.md)) |
+| [notes/](notes/) | Dated working notes, including the overnight ML run summary of 17 November 2026 and the draft privacy policy and terms of 23 November 2026 |
 | [sprint-presentation-2026-11-05.md](sprint-presentation-2026-11-05.md), [sprint-review-readiness.md](sprint-review-readiness.md) | Sprint review material |
 | [source-reconciliation-2026-11-04.md](source-reconciliation-2026-11-04.md), [chat-worklog-2026-10-29.md](chat-worklog-2026-10-29.md) | Earlier reconciliation and worklog records |

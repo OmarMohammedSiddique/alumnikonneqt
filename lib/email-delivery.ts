@@ -11,6 +11,8 @@ export interface ApplicationEmailPayload {
   replyTo?: string;
   idempotencyKey?: string;
   tags?: Array<{ name: string; value: string }>;
+  // Extra message headers, for example List-Unsubscribe.
+  headers?: Record<string, string>;
 }
 
 export type DeliveryResult =
@@ -267,6 +269,13 @@ export async function sendApplicationEmail(
   if (payload.text) bodyData.text = payload.text;
   if (payload.replyTo) bodyData.reply_to = payload.replyTo;
   if (payload.tags && payload.tags.length > 0) bodyData.tags = payload.tags;
+  if (payload.headers) {
+    // A line break in a header would let a value start a new header.
+    const safe = Object.entries(payload.headers).filter(
+      ([name, value]) => /^[A-Za-z0-9-]+$/.test(name) && !/[\r\n]/.test(value),
+    );
+    if (safe.length > 0) bodyData.headers = Object.fromEntries(safe);
+  }
 
   const headers: Record<string, string> = {
     "Authorization": `Bearer ${apiKey}`,

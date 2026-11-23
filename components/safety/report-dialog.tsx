@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState, type RefObject } from "react";
 import { AlertCircle, CheckCircle2, Flag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import {
   MAX_REPORT_DETAILS_LENGTH,
   type ReportReason,
 } from "@/lib/profile-privacy";
+import { useModalFocus } from "@/lib/use-modal-focus";
 import {
   reportMemberAction,
   type ReportActionState,
@@ -21,6 +22,7 @@ interface ReportDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onReportSubmitted?: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }
 
 const initialState: ReportActionState = { ok: false };
@@ -31,6 +33,7 @@ export function ReportDialog({
   isOpen,
   onClose,
   onReportSubmitted,
+  returnFocusRef,
 }: ReportDialogProps) {
   const reasonSelectId = useId();
   const detailsInputId = useId();
@@ -48,15 +51,13 @@ export function ReportDialog({
     }
   }, [state.ok, onReportSubmitted]);
 
-  // Handle escape key
+  const dialogRef = useModalFocus<HTMLDivElement>({ isOpen, onClose, returnFocusRef });
+  const doneRef = useRef<HTMLButtonElement>(null);
+
+  // The form, and the button that held focus, are removed on success.
   useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+    if (state.ok) doneRef.current?.focus();
+  }, [state.ok]);
 
   if (!isOpen) return null;
 
@@ -65,6 +66,8 @@ export function ReportDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="report-dialog-title"
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
     >
       <div
@@ -96,7 +99,7 @@ export function ReportDialog({
 
         {state.ok ? (
           <div className="space-y-4 py-2">
-            <div className="flex items-start gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-4 text-green-700 dark:text-green-300">
+            <div role="status" className="flex items-start gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-4 text-green-700 dark:text-green-300">
               <CheckCircle2 className="size-5 shrink-0 mt-0.5" />
               <div className="text-sm">
                 <p className="font-medium">Report submitted</p>
@@ -107,7 +110,7 @@ export function ReportDialog({
               </div>
             </div>
             <div className="flex justify-end pt-2">
-              <Button type="button" onClick={onClose}>
+              <Button type="button" ref={doneRef} onClick={onClose}>
                 Done
               </Button>
             </div>
@@ -128,9 +131,10 @@ export function ReportDialog({
               <select
                 id={reasonSelectId}
                 name="reason"
+                data-autofocus
                 value={selectedReason}
                 onChange={(e) => setSelectedReason(e.target.value as ReportReason)}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary"
                 required
               >
                 {REPORT_REASONS.map((reason) => (
@@ -158,7 +162,7 @@ export function ReportDialog({
                 maxLength={MAX_REPORT_DETAILS_LENGTH}
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="Provide any relevant context to assist our moderators..."
-                className="w-full rounded-md border bg-background p-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary"
+                className="w-full rounded-md border border-input bg-background p-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
 

@@ -50,5 +50,8 @@ export function buildNotificationEmail(event: EmailEvent, to: string, siteOrigin
     text: `${title}\n\n${body}\n\n${actionText}: ${origin}${path}\n\nManage email preferences or unsubscribe: ${settings}\n\nAccount security emails are managed separately.`,
     idempotencyKey: `notification/${event.id}`,
     tags: [{ name: "category", value: event.kind }],
+    // Mail clients show this as an unsubscribe link. It opens the preferences
+    // page, which needs sign-in, so the one-click POST variant is not claimed.
+    headers: { "List-Unsubscribe": `<${settings}>` },
   };
 }

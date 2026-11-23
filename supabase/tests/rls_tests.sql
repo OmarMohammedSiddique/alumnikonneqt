@@ -760,6 +760,140 @@ do $$ begin
 end $$;
 select pg_temp.reset_role();
 
+-- ---------------------------------------------------------------------------
+-- TEST 21: launch review hardening (20261123090000).
+-- Fixtures are written as postgres so the scenarios do not depend on earlier state.
+delete from public.mentorship_requests
+where mentee_id = '00000000-0000-0000-0000-000000000006';
+delete from public.reports where reporter_id = '00000000-0000-0000-0000-000000000006';
+insert into public.mentorship_requests (id, mentee_id, mentor_id, message, status)
+values ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000006',
+        '00000000-0000-0000-0000-000000000002', 'original message', 'pending');
+insert into public.reports (id, reporter_id, reported_id, reason, details)
+values ('00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-000000000006',
+        '00000000-0000-0000-0000-000000000001', 'spam', 'fixture');
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+values ('00000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000000',
+        'authenticated', 'authenticated', 'noprofile@test.local',
+        '{"role":"mentee","full_name":"No Profile"}', now(), now());
+delete from public.profiles where id = '00000000-0000-0000-0000-000000000007';
+
+-- 21a: a signed-in account with no profile row is not treated as staff.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000007');
+do $$ begin
+  begin
+    perform public.review_report('00000000-0000-0000-0000-0000000000b1', 'dismiss', 'no profile');
+    raise exception 'FAIL 21a: account without a profile reviewed a report';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm not like 'only moderators or admins%' then
+      raise exception 'FAIL 21a: unexpected error: %', sqlerrm;
+    end if;
+  end;
+end $$;
+select pg_temp.reset_role();
+do $$ begin
+  if (select status from public.reports where id = '00000000-0000-0000-0000-0000000000b1') <> 'pending' then
+    raise exception 'FAIL 21a: report status changed';
+  end if;
+end $$;
+
+-- 21b: a member cannot file a report that is already reviewed.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000006');
+do $$ begin
+  begin
+    insert into public.reports (reporter_id, reported_id, reason, details, status, action_taken)
+    values (auth.uid(), '00000000-0000-0000-0000-000000000003', 'spam', 'forged', 'actioned', 'profile_hidden');
+    raise exception 'FAIL 21b: member forged a reviewed report';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.reports (reporter_id, reported_id, reason, details, reviewed_by)
+    values (auth.uid(), '00000000-0000-0000-0000-000000000003', 'spam', 'forged', auth.uid());
+    raise exception 'FAIL 21b: member forged the reviewer of a report';
+  exception when insufficient_privilege then null;
+  end;
+  -- The normal submission still works.
+  insert into public.reports (reporter_id, reported_id, reason, details)
+  values (auth.uid(), '00000000-0000-0000-0000-000000000003', 'spam', 'genuine');
+end $$;
+
+-- 21c: a mentee cancelling a request can change the status and nothing else.
+do $$
+declare affected int;
+begin
+  begin
+    update public.mentorship_requests set message = 'rewritten'
+    where id = '00000000-0000-0000-0000-0000000000a1';
+    raise exception 'FAIL 21c: mentee rewrote the request message';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update public.mentorship_requests
+    set status = 'cancelled', mentor_id = '00000000-0000-0000-0000-000000000003'
+    where id = '00000000-0000-0000-0000-0000000000a1';
+    raise exception 'FAIL 21c: mentee redirected the request while cancelling';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.mentorship_requests (mentee_id, mentor_id, message, created_at)
+    values (auth.uid(), '00000000-0000-0000-0000-000000000003', 'backdated', now() - interval '5 days');
+    raise exception 'FAIL 21c: mentee backdated a new request';
+  exception when insufficient_privilege then null;
+  end;
+  update public.mentorship_requests set status = 'cancelled'
+  where id = '00000000-0000-0000-0000-0000000000a1';
+  get diagnostics affected = row_count;
+  if affected <> 1 then
+    raise exception 'FAIL 21c: mentee could not cancel their own pending request';
+  end if;
+end $$;
+select pg_temp.reset_role();
+do $$ begin
+  if not exists (
+    select 1 from public.mentorship_requests
+    where id = '00000000-0000-0000-0000-0000000000a1' and status = 'cancelled'
+      and message = 'original message' and mentor_id = '00000000-0000-0000-0000-000000000002'
+  ) then
+    raise exception 'FAIL 21c: cancelled request does not hold its original fields';
+  end if;
+end $$;
+
+-- 21d: staff change reports only through review_report().
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000004');
+do $$ begin
+  begin
+    update public.reports set status = 'dismissed'
+    where id = '00000000-0000-0000-0000-0000000000b1';
+    raise exception 'FAIL 21d: moderator edited a report without the audited function';
+  exception when insufficient_privilege then null;
+  end;
+  if (public.review_report('00000000-0000-0000-0000-0000000000b1', 'dismiss', 'reviewed') ->> 'status')
+     <> 'dismissed' then
+    raise exception 'FAIL 21d: moderator could not dismiss through review_report';
+  end if;
+end $$;
+select pg_temp.reset_role();
+
+-- 21e: the anonymous role holds no privilege on member tables.
+do $$
+declare t text;
+begin
+  foreach t in array array['profiles', 'mentorship_requests', 'connections',
+                           'audit_logs', 'blocks', 'reports', 'connection_contacts'] loop
+    if has_table_privilege('anon', 'public.' || t, 'select')
+       or has_table_privilege('anon', 'public.' || t, 'insert')
+       or has_table_privilege('anon', 'public.' || t, 'truncate') then
+      raise exception 'FAIL 21e: anon holds a privilege on %', t;
+    end if;
+  end loop;
+  if has_table_privilege('authenticated', 'public.audit_logs', 'insert')
+     or has_table_privilege('authenticated', 'public.audit_logs', 'truncate')
+     or has_table_privilege('authenticated', 'public.profiles', 'truncate') then
+    raise exception 'FAIL 21e: authenticated holds an unused privilege';
+  end if;
+end $$;
+
 select 'ALL RLS TESTS PASSED' as result;
 
 rollback;

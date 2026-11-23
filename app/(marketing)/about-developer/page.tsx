@@ -109,8 +109,8 @@ export default function AboutDeveloperPage() {
                 through semantic similarity, shared backgrounds, and genuine common ground.
               </p>
               <p>
-                As the sole engineer and researcher on this capstone, I oversaw the entire lifecycle: from empirical data collection
-                and research methodologies to full-stack architecture, machine learning model fine-tuning, security audits, and
+                As the sole engineer and researcher on this capstone, I oversaw the entire lifecycle: from research design
+                and synthetic training data to full-stack architecture, training and evaluating matching models, security reviews, and
                 responsive UI/UX implementation.
               </p>
             </div>
@@ -129,9 +129,10 @@ export default function AboutDeveloperPage() {
               </h3>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Developed an automated semantic discovery pipeline utilizing fine-tuned <strong>MiniLM-L6-v2</strong> sentence transformer
+              Developed an automated semantic discovery pipeline utilizing pretrained <strong>MiniLM-L6-v2</strong> sentence transformer
               embeddings paired with PostgreSQL <strong>pgvector</strong> cosine similarity indexing, allowing mentees to discover mentors
-              based on underlying career aspirations and shared competencies rather than simple keyword matches.
+              based on underlying career aspirations and shared competencies rather than simple keyword matches. An experimental encoder
+              trained from scratch on synthetic profiles runs alongside it for comparison.
             </p>
           </div>
 
@@ -147,7 +148,7 @@ export default function AboutDeveloperPage() {
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               Engineered with <strong>Next.js (App Router, React 19, Server Actions)</strong>, <strong>TypeScript</strong>, and
               <strong> Tailwind CSS v4</strong>. Backed by Supabase PostgreSQL with strict Row Level Security (RLS) policies,
-              asynchronous webhook email notifications (Resend), and passwordless authentication.
+              asynchronous webhook email notifications (Resend), and email and password or Google sign-in with email verification.
             </p>
           </div>
 
