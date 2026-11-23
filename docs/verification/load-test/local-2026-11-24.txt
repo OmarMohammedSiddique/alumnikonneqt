@@ -1,0 +1,44 @@
+{
+ "run_at": "2026-11-23T21:13:42.886Z",
+ "commit": "a29f349",
+ "node": "v26.13.0",
+ "request_timeout_ms": 30000,
+ "target": "http://localhost:3100",
+ "accounts": 25,
+ "concurrency": 100,
+ "rounds": 5,
+ "requests": 500,
+ "mentors_with_embedding": 5,
+ "statuses": {
+  "200": 500
+ },
+ "successful_with_matches_array": 500,
+ "matches_per_successful_response": {
+  "min": 5,
+  "max": 5
+ },
+ "within_2s_and_successful": 7,
+ "share_within_2s": 0.014,
+ "latency_ms_all_requests": {
+  "min": 564,
+  "median": 4548,
+  "p90": 4787,
+  "p95": 4819,
+  "p99": 4917,
+  "max": 5102
+ },
+ "sequential_warm_up_ms": {
+  "median": 540,
+  "max": 745
+ },
+ "round_wall_ms": [
+  5112,
+  4826,
+  4934,
+  4866,
+  5096
+ ],
+ "samples_file": "docs/verification/load-test/local-2026-11-24-samples.json",
+ "nfr_01_met": false
+}
+Deleted 25 of 25 disposable load-test accounts
