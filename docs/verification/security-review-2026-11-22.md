@@ -144,6 +144,7 @@ Status is what the audit found: "Found" means a flaw or gap exists, "Not found" 
 - Advisor warnings: leaked password protection off (check 6); seven SECURITY DEFINER functions callable by signed-in users (intended, each checks the caller); `email_outbox` and `email_suppressions` have row-level security with no policy (intended, service role only).
 - Fix: migration `20261123090000_launch_review_hardening.sql`. Reports accept only the four member columns and must be pending and unreviewed. Staff change reports only through `review_report()`. All privileges are revoked from `anon` on member tables, and TRUNCATE, REFERENCES, TRIGGER and audit log writes are revoked from `authenticated`.
 - Verification: TEST 21b, 21d and 21e in `supabase/tests/rls_tests.sql` pass on the dev database, with all six database suites.
+- Hosted database: the migration was applied to the production project on 23 November 2026 after CI passed (recorded there as `20261123045425_launch_review_hardening`). The catalogue then shows no privilege for `anon` on any of the seven member tables, `authenticated` limited to the listed columns on `reports` and `mentorship_requests`, the "reports: update staff" policy gone, and `pg_temp` last in the search path of all six functions. The security advisor returns only the three warnings listed above. The behavioural tests were not run against production, so as not to write test rows there.
 - Open: `is_blocked_with` reveals a block to the blocked member (issue 147). No DELETE policy on photos (issue 139).
 
 ### 13. Server-side permission checks
@@ -210,7 +211,7 @@ Status is what the audit found: "Found" means a flaw or gap exists, "Not found" 
 - Risk: without a frame rule the site could be embedded for clickjacking; without a content policy an injected script would run unrestricted.
 - Evidence: `curl -I https://alumnikonneqt.com` showed HSTS without `includeSubDomains`, `x-powered-by: Next.js`, and none of Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy or Permissions-Policy. HTTP and `www` redirect correctly.
 - Fix: `lib/security-headers.ts` sends all of them on every response and `x-powered-by` is off. The enforced policy holds `frame-ancestors 'none'; base-uri 'self'; object-src 'none'`. The full policy is sent report-only.
-- Verification: unit tests; `curl -I` against the local server shows every header; the landing, sign-in and sign-up pages load with no policy violation in the console. Live verification follows the merge.
+- Verification: unit tests; `curl -I` against the local server shows every header; the landing, sign-in and sign-up pages load with no policy violation in the console. On the Vercel preview of pull request 149, `/login` returns every header with the production policy values and no `x-powered-by`. The live site still shows the old headers until the merge.
 - Open: enforce the full policy (issue 143).
 
 ### 23. CORS
