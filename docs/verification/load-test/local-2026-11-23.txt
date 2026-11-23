@@ -1,0 +1,36 @@
+{
+ "target": "http://localhost:3100",
+ "accounts": 25,
+ "concurrency": 100,
+ "rounds": 5,
+ "requests": 500,
+ "mentors_with_embedding": 5,
+ "matches_returned_first_request": 5,
+ "statuses": {
+  "200": 500
+ },
+ "successful": 500,
+ "within_2s_and_successful": 5,
+ "share_within_2s": 0.01,
+ "latency_ms_all_requests": {
+  "min": 574,
+  "median": 4474,
+  "p90": 5033,
+  "p95": 5108,
+  "p99": 5178,
+  "max": 5404
+ },
+ "sequential_warm_up_ms": {
+  "median": 531,
+  "max": 712
+ },
+ "round_wall_ms": [
+  5411,
+  4516,
+  5073,
+  4575,
+  5017
+ ],
+ "nfr_01_met": false
+}
+Deleted 25 disposable load-test accounts
