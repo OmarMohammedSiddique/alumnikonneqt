@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Flag, MoreVertical, ShieldAlert } from "lucide-react";
 import { ReportDialog } from "./report-dialog";
 import { BlockDialog } from "./block-dialog";
@@ -21,6 +21,7 @@ export function SafetyActionsMenu({
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -38,6 +39,7 @@ export function SafetyActionsMenu({
       <div className="relative inline-block text-left">
         <button
           type="button"
+          ref={triggerRef}
           onClick={() => setMenuOpen((prev) => !prev)}
           className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary transition-colors"
           aria-label={`Safety options for ${targetName}`}
@@ -94,6 +96,7 @@ export function SafetyActionsMenu({
           isOpen={reportOpen}
           onClose={() => setReportOpen(false)}
           onReportSubmitted={() => onReported?.()}
+          returnFocusRef={triggerRef}
         />
       )}
 
@@ -104,6 +107,7 @@ export function SafetyActionsMenu({
           isOpen={blockOpen}
           onClose={() => setBlockOpen(false)}
           onBlocked={() => onBlocked?.()}
+          returnFocusRef={triggerRef}
         />
       )}
     </>

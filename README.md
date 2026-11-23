@@ -74,6 +74,7 @@ for the methodology and recorded results.
 | Motion and visuals | GSAP, React Three Fiber, Three.js |
 | Quality | ESLint, TypeScript, GitHub Actions |
 | Error tracking | Sentry (errors only, optional) |
+| Hosting and measurement | Vercel, Web Analytics and Speed Insights (both only after analytics consent) |
 
 ## Getting started
 

@@ -11,7 +11,7 @@ export const COOKIE_SETTINGS_MODAL_EVENT = "alumnikonneqt:open-cookie-settings";
 export interface CookiePreferences {
   necessary: true; // Always active (Supabase session, security, consent storage)
   functional: boolean; // Preferences, like theme (light/dark)
-  analytics: boolean; // Anonymous usage telemetry (Vercel Analytics) and browser error reports (Sentry)
+  analytics: boolean; // Anonymous usage and page speed telemetry (Vercel Analytics, Speed Insights) and browser error reports (Sentry)
 }
 
 export interface StoredCookieConsent {

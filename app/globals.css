@@ -150,7 +150,8 @@
   --accent-foreground: var(--brand-white);
   --destructive: var(--brand-red);
   --border: color-mix(in srgb, var(--brand-white) 16%, var(--brand-ink));
-  --input: color-mix(in srgb, var(--brand-white) 22%, var(--brand-ink));
+  /* 40% keeps control borders at 3:1 or better on the page and card surfaces. */
+  --input: color-mix(in srgb, var(--brand-white) 40%, var(--brand-ink));
   --ring: var(--brand-red);
 }
 

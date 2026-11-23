@@ -1,8 +1,14 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
+import { buildSecurityHeaders } from "./lib/security-headers";
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:path*", headers: buildSecurityHeaders(process.env) }];
+  },
   serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "onnxruntime-common"],
   outputFileTracingIncludes: {
     "/api/match/compare": [

@@ -250,8 +250,12 @@ export async function executeReportMember(
 
 export async function executeUpdateVisibility(
   supabase: GenericClient,
-  memberVisible: boolean,
+  memberVisible: unknown,
 ): Promise<{ ok: boolean; message?: string; error?: string; staffHidden?: boolean }> {
+  // Server Action arguments arrive from the network, so the type is checked here.
+  if (typeof memberVisible !== "boolean") {
+    return { ok: false, error: "Invalid visibility value." };
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
