@@ -85,7 +85,7 @@ export default async function AdminPage() {
             ? "Assign roles and moderate profile visibility."
             : "Moderate profile visibility. Role changes require an admin."}
         </p>
-        <div className="workspace-table-wrap">
+        <div className="workspace-table-wrap" role="region" aria-label="User management table" tabIndex={0}>
           <table className="workspace-table">
             <thead>
               <tr>
@@ -137,7 +137,7 @@ export default async function AdminPage() {
         <p className="mb-4 text-sm text-muted-foreground">
           Pending member reports requiring moderation review.
         </p>
-        <div className="workspace-table-wrap">
+        <div className="workspace-table-wrap" role="region" aria-label="Safety reports table" tabIndex={0}>
           <table className="workspace-table">
             <thead>
               <tr>
@@ -203,7 +203,7 @@ export default async function AdminPage() {
         <p className="mb-4 text-sm text-muted-foreground">
           Most recent 50 platform events, written by database triggers.
         </p>
-        <div className="workspace-table-wrap">
+        <div className="workspace-table-wrap" role="region" aria-label="Audit log table" tabIndex={0}>
           <table className="workspace-table">
             <thead>
               <tr>

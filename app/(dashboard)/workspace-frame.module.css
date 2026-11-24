@@ -7,8 +7,8 @@
   --frame-line: rgb(23 38 48 / 14%);
   --control-bg: rgb(255 255 255 / 88%);
   --control-hover: #fff;
-  /* 4.9:1 against the control fill and at least 3:1 against the sky. */
-  --control-border: #5f7786;
+  /* About 6:1 against the control fill and at least 3:1 against the sky. */
+  --control-border: #4f6676;
   position: sticky;
   top: 0;
   z-index: var(--z-navigation);

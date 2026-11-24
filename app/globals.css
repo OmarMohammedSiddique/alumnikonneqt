@@ -292,6 +292,8 @@ dialog::backdrop {
   --primary: #101415;
   --primary-foreground: var(--brand-white);
   --primary-hover: #293b44;
+  /* About 4:1 on cards and 3.7:1 on the page, so control edges reach 3:1. */
+  --input: #6f8291;
 }
 .dark .workspace-shell {
   --surface: #0a121a;
