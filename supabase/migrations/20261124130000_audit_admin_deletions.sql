@@ -8,6 +8,12 @@
 -- The rows hold identifiers and roles only, never names or message text, so a
 -- deleted member's personal details do not survive in the audit log.
 -- Retention of audit rows is a separate decision (#142).
+--
+-- The triggers run BEFORE DELETE. Cascaded AFTER triggers fire at the end of
+-- the outer statement at depth 1, like a direct delete, so only a BEFORE
+-- trigger can tell the two apart with pg_trigger_depth(). It also still sees
+-- the profile of an admin who deletes their own account. If the deletion
+-- fails, the audit row is rolled back with it.
 
 create or replace function public.log_deletion()
 returns trigger
@@ -23,7 +29,8 @@ declare
     -- The database login that ran the deletion, for example authenticator
     -- (the API), supabase_auth_admin (deleting an Auth user) or postgres.
     'db_user', session_user::text,
-    -- True when the row went because a parent row was deleted.
+    -- True when the row goes because a parent row was deleted (the foreign
+    -- key cascade runs this trigger one level deeper).
     'cascaded', pg_trigger_depth() > 1
   );
 begin
@@ -53,15 +60,15 @@ revoke execute on function public.log_deletion() from public, anon, authenticate
 
 drop trigger if exists log_profile_deletion on public.profiles;
 create trigger log_profile_deletion
-  after delete on public.profiles
+  before delete on public.profiles
   for each row execute function public.log_deletion();
 
 drop trigger if exists log_request_deletion on public.mentorship_requests;
 create trigger log_request_deletion
-  after delete on public.mentorship_requests
+  before delete on public.mentorship_requests
   for each row execute function public.log_deletion();
 
 drop trigger if exists log_connection_deletion on public.connections;
 create trigger log_connection_deletion
-  after delete on public.connections
+  before delete on public.connections
   for each row execute function public.log_deletion();
