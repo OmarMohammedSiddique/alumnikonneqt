@@ -4,6 +4,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-pgvector-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+[![Licence: all rights reserved](https://img.shields.io/badge/licence-all%20rights%20reserved-lightgrey)](#licence)
 
 [🌐 Open the live demo](https://alumnikonneqt.com)
 
@@ -255,3 +256,23 @@ AlumniKonneQt is an actively developed academic capstone and portfolio project.
 It is suitable for local evaluation and continued development; production
 deployment requires hosted Supabase configuration, operational monitoring, and
 an institution-specific privacy review.
+
+## Licence
+
+Except where noted, copyright (c) 2026 Omar Siddique. All rights reserved.
+
+This repository is public so that the project can be assessed. No licence is
+granted beyond the permissions in
+[GitHub's terms of service](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service#5-license-grant-to-other-users),
+which let you view and fork it on GitHub. You may also clone and run it locally
+to evaluate or assess it, and prepare pull requests to this repository. Any
+other copying, modification, distribution or reuse, in whole or in part, needs
+written permission.
+
+Third-party code, fonts, music, data, names, logos and images in this
+repository remain the property of their owners and stay under their own
+licences. Image sources are listed in
+[`public/images/README.md`](public/images/README.md) (being completed in
+[issue #144](https://github.com/OmarMohammedSiddique/alumnikonneqt/issues/144)),
+launch film credits in [`brag-output/README.md`](brag-output/README.md) and
+dataset sources in [`docs/ml-synth-v3-data-card.md`](docs/ml-synth-v3-data-card.md).

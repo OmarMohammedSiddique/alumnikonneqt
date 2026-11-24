@@ -3,6 +3,11 @@
 Thank you for helping improve AlumniKonneQt. Contributions should be focused,
 reviewable, and consistent with the project's security model.
 
+AlumniKonneQt is all rights reserved (see the Licence section of the
+[README](README.md#licence)). By submitting a pull request you agree that the
+project owner may use, modify and distribute your contribution as part of
+AlumniKonneQt.
+
 ## Development workflow
 
 1. Create a branch from the latest default branch.

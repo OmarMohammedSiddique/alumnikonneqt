@@ -2,6 +2,7 @@
   "name": "alumnikonneqt",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "description": "Semantic alumni mentorship matching with Next.js, Supabase, and pgvector.",
   "repository": {
     "type": "git",
