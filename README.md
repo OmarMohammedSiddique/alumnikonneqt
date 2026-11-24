@@ -75,7 +75,7 @@ for the methodology and recorded results.
 | Motion and visuals | GSAP, React Three Fiber, Three.js |
 | Quality | ESLint, TypeScript, GitHub Actions |
 | Error tracking | Sentry (errors only, optional) |
-| Hosting and measurement | Vercel, Web Analytics and Speed Insights (both only after analytics consent) |
+| Hosting and measurement | Vercel, with functions in Dublin (`dub1`) beside the Supabase database in `eu-west-1`; Web Analytics and Speed Insights (both only after analytics consent) |
 
 ## Getting started
 
