@@ -41,6 +41,12 @@ Both are server only. Changing them on Vercel needs a redeploy to take effect.
 3. Set `DEMO_SWITCHER_ENABLED=false` and redeploy if demo mode is no longer needed.
 4. If the presenter key may have been seen, rotate `DEMO_SWITCHER_KEY`. Changing the key locks out every browser that was unlocked with the old one.
 
-## Known limitation
+## Demo accounts and real members are kept apart
 
-Demo accounts share the live database with real members. A real Mentee can send a request to a demo Mentor, and the presenter will see it while signed in as that Mentor. Keeping fictional and real accounts apart at database level is tracked separately.
+Demo accounts share the live database with real members, but the database keeps the two apart once migration `20261124120000_separate_demo_and_member_accounts.sql` is applied:
+
+- A mentorship request, and therefore a connection, can only join two demo accounts or two real members. The database refuses a request in either direction between a demo account and a real member, whoever sends it, and the app shows "Demo accounts and members cannot send requests to each other."
+- Discovery offers each account only Mentors of its own kind: Recommended, Keyword search and the model comparison. Real members do not see demo Mentors, and the demo Mentee does not see real Mentors.
+- A cross request created before the migration is left in place. It can still be cancelled or declined, but accepting it is refused.
+
+An account counts as a demo account only when its `app_metadata.fictional` is `true`. Test accounts that must interact with demo accounts (for example in a study or a load test) need the same marker, and accounts that must interact with real members must not have it.
