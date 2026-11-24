@@ -312,7 +312,7 @@ dialog::backdrop {
   --input: #6f8396;
   --primary: #eef4f9;
   --primary-foreground: #101415;
-  --primary-hover: var(--brand-white);
+  --primary-hover: #cddbe7;
 }
 .workspace-main [data-slot="button"].bg-primary:hover { background-color: var(--primary-hover); }
 .workspace-main [data-slot="card"] {

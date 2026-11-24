@@ -153,19 +153,13 @@
 .theme button svg { color: inherit; }
 .control svg { width: 16px; height: 16px; flex: none; }
 .frame a:focus-visible,
-.frame button:focus-visible,
-.frame summary:focus-visible {
+.frame button:focus-visible {
   outline: 2px solid var(--frame-ink);
   outline-offset: 3px;
 }
 
 /* Phone menu */
 .menu { flex: none; }
-.menu > summary {
-  list-style: none;
-  cursor: pointer;
-}
-.menu > summary::-webkit-details-marker { display: none; }
 .panel {
   display: grid;
   gap: 4px;
@@ -292,8 +286,12 @@
   .bar, .tabList { width: min(var(--content-width), calc(100% - 80px)); }
   .tagline { display: inline; }
 }
+/* Narrow phones: the logo and menu button keep sharing one row, so the
+   sticky header stays inside the scroll clearance. */
 @media (max-width: 380px) {
-  .logo img { height: 34px; }
+  .bar { column-gap: 8px; }
+  .logo img { height: 32px; }
+  .menu { padding: 0 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tab, .tab::after, .control, .theme button { transition: none; }

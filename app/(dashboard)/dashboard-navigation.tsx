@@ -43,13 +43,14 @@ export function DashboardNavigation({ name, role }: { name: string; role: string
     </div>
   );
 
-  const account = (
+  // The phone menu keeps the visible "Appearance" label from the old sidebar.
+  const account = (inMenu: boolean) => (
     <>
       {member}
       <Link href="/" onClick={closeMenu} className={styles.control}>
         <House aria-hidden="true" />Public homepage
       </Link>
-      <ThemeToggle className={styles.theme} />
+      <ThemeToggle className={styles.theme} showLabel={inMenu} />
       <form
         action={signOut}
         onSubmit={() => {
@@ -84,7 +85,7 @@ export function DashboardNavigation({ name, role }: { name: string; role: string
             </HomeLogoLink>
             <p className={styles.tagline}>Your workspace</p>
           </div>
-          <div className={styles.account}>{account}</div>
+          <div className={styles.account}>{account(false)}</div>
           <button
             ref={toggle}
             type="button"
@@ -105,7 +106,7 @@ export function DashboardNavigation({ name, role }: { name: string; role: string
               </Link>
             ))}
           </nav>
-          <div className={styles.panelAccount}>{account}</div>
+          <div className={styles.panelAccount}>{account(true)}</div>
         </div>
       </header>
       <nav aria-label="Workspace" className={styles.tabs}>
