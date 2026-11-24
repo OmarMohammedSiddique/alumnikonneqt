@@ -945,6 +945,10 @@ do $$ begin
   if not exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-000000000002') then
     raise exception 'FAIL 22c: member cannot read a visible mentor before any block';
   end if;
+  if not exists (select 1 from public.search_mentors('Max', 10)
+                 where id = '00000000-0000-0000-0000-000000000002') then
+    raise exception 'FAIL 22c: search_mentors misses a visible mentor before any block';
+  end if;
 end $$;
 select pg_temp.reset_role();
 insert into public.blocks (blocker_id, blocked_id)

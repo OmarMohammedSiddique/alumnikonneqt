@@ -19,6 +19,8 @@
 create schema if not exists private;
 revoke all on schema private from public, anon;
 grant usage on schema private to authenticated, service_role;
+-- Functions added to this schema later are not executable by everyone by default.
+alter default privileges in schema private revoke execute on functions from public;
 
 alter function public.is_blocked_with(uuid) set schema private;
 
