@@ -4,7 +4,6 @@ import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { DashboardNavigation } from "./dashboard-navigation";
 import { CookieSettingsTrigger } from "@/components/cookie-settings-trigger";
 import { PrototypeNotice } from "@/components/brand";
-import { ClockStrip } from "@/components/nairobi-clock";
 import { DemoSwitcher } from "@/components/demo-switcher";
 import { demoSwitcherEnabled, listDemoAccounts } from "@/lib/demo-accounts";
 import { isFictionalDemoUser } from "@/lib/demo-switcher";
@@ -28,17 +27,16 @@ export default async function DashboardLayout({
   ]);
 
   return (
-    <div className="flex min-h-svh flex-col bg-surface md:flex-row">
+    <div className="workspace-shell flex min-h-svh flex-col bg-surface">
       <a href="#workspace" className="product-skip">Skip to workspace</a>
       <DashboardNavigation name={profile?.full_name ?? "Your account"} role={profile?.role ?? ""} />
-      <main id="workspace" className="flex min-w-0 flex-1 flex-col">
-        <ClockStrip className="bg-card" />
+      <main id="workspace" className="workspace-main flex min-w-0 flex-1 flex-col">
         <div className="flex flex-1 flex-col justify-between px-4 py-7 sm:px-6 sm:py-9 lg:px-10">
         <div className="product-page">
           {showDemoSwitcher && <DemoSwitcher accounts={demoAccounts} currentId={user.id} variant="bar" />}
           {children}
         </div>
-        <footer className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6 pb-2 text-xs text-muted-foreground">
+        <footer className="product-page mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6 pb-2 text-xs text-muted-foreground">
           <nav aria-label="Dashboard footer navigation" className="flex flex-wrap items-center gap-4">
             <Link href="/about-developer" className="underline-offset-4 hover:underline">
               About Developer

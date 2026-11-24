@@ -1,0 +1,306 @@
+/* Workspace frame. The header carries the window seat sky from sign-in and the
+   landing page; everything below it stays on plain, high-contrast surfaces.
+   Type and link treatment follow the shared public bar (site-header). */
+.frame {
+  --frame-ink: #172630;
+  --frame-muted: #344e60;
+  --frame-line: rgb(23 38 48 / 14%);
+  --control-bg: rgb(255 255 255 / 88%);
+  --control-hover: #fff;
+  /* 4.9:1 against the control fill and at least 3:1 against the sky. */
+  --control-border: #5f7786;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-navigation);
+  isolation: isolate;
+  max-height: 100svh;
+  overflow-y: auto;
+  color: var(--frame-ink);
+  background: #b9d7e8 url("/images/auth/clouds.webp") center 42% / cover no-repeat;
+  border-bottom: 1px solid var(--frame-line);
+}
+/* A light veil keeps every word on the sky well above AA. */
+.frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgb(237 245 249 / 66%), rgb(232 243 247 / 50%) 60%, rgb(240 247 250 / 72%));
+}
+:global(.dark) .frame {
+  --frame-ink: #eaf2f8;
+  --frame-muted: #c9d9e6;
+  --frame-line: rgb(234 242 248 / 16%);
+  --control-bg: rgb(13 27 42 / 82%);
+  --control-hover: #132c45;
+  --control-border: #8ea3b5;
+  background-color: #081426;
+  background-image: url("/images/auth/night-sky.webp");
+}
+:global(.dark) .frame::before {
+  background: linear-gradient(180deg, rgb(8 20 38 / 62%), rgb(13 32 51 / 52%) 60%, rgb(11 28 52 / 70%));
+}
+
+/* The Nairobi clock band reads its colours from these variables. */
+.clock {
+  --muted-foreground: var(--frame-muted);
+  --border: var(--frame-line);
+  min-height: 28px;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  width: min(var(--content-width), calc(100% - 32px));
+  margin-inline: auto;
+  padding-block: 10px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+.logo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 10px;
+}
+.logo img { max-width: none; }
+.tagline {
+  display: none;
+  margin: 0;
+  font: 600 11px/1 var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--frame-muted);
+  white-space: nowrap;
+}
+
+.account {
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 15rem;
+  padding-right: 8px;
+}
+.initial {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--frame-ink);
+  color: var(--control-bg);
+  font-size: 14px;
+  font-weight: 600;
+}
+:global(.dark) .initial { color: #0d1b2a; }
+.memberName {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.memberRole {
+  font: 500 10px/1.4 var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--frame-muted);
+}
+
+/* Buttons and links on the sky: a filled control with a visible edge. */
+.control,
+.theme button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--control-border);
+  border-radius: 12px;
+  background: var(--control-bg);
+  color: var(--frame-ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--motion-fast) var(--ease-out);
+}
+.control:hover,
+.theme button:hover {
+  background: var(--control-hover);
+  color: var(--frame-ink);
+}
+.theme button svg { color: inherit; }
+.control svg { width: 16px; height: 16px; flex: none; }
+.frame a:focus-visible,
+.frame button:focus-visible,
+.frame summary:focus-visible {
+  outline: 2px solid var(--frame-ink);
+  outline-offset: 3px;
+}
+
+/* Phone menu */
+.menu { flex: none; }
+.menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.menu > summary::-webkit-details-marker { display: none; }
+.panel {
+  display: grid;
+  gap: 4px;
+  width: min(var(--content-width), calc(100% - 32px));
+  margin: 0 auto 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--workspace-card-shadow);
+}
+.panel[hidden] { display: none; }
+.panelLinks {
+  display: grid;
+  gap: 4px;
+}
+.panelLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  text-decoration: none;
+}
+.panelLink:hover { background: var(--muted); color: var(--foreground); }
+.panelLink[aria-current="page"] {
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 500;
+  box-shadow: inset 3px 0 0 var(--brand-red);
+}
+.panelLink svg { width: 16px; height: 16px; flex: none; }
+.panelAccount {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 14px 4px 4px;
+  border-top: 1px solid var(--border);
+}
+.panelAccount .member { padding-inline: 8px; max-width: none; }
+.panelAccount .initial { background: var(--foreground); color: var(--card); }
+.panelAccount .memberRole { color: var(--muted-foreground); }
+.panelAccount .control,
+.panelAccount .theme button {
+  justify-content: flex-start;
+  width: 100%;
+  border-color: var(--input);
+  background: var(--card);
+  color: var(--foreground);
+}
+.panelAccount .control:hover,
+.panelAccount .theme button:hover { background: var(--muted); }
+.panel a:focus-visible,
+.panel button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Section tabs: an opaque strip under the sky that stays in view. */
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-navigation);
+  display: none;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+.tabList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: min(var(--content-width), calc(100% - 32px));
+  margin-inline: auto;
+}
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 14px;
+  color: var(--muted-foreground);
+  font: 600 12px/1 var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out);
+}
+.tab svg { width: 16px; height: 16px; flex: none; }
+.tab::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--brand-red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--motion-standard) var(--ease-out);
+}
+.tab:hover { color: var(--foreground); background: var(--muted); }
+.tab:hover::after { transform: scaleX(0.4); }
+.tab[aria-current="page"] { color: var(--foreground); }
+.tab[aria-current="page"]::after { transform: scaleX(1); }
+.tab:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+
+@media (min-width: 768px) {
+  .frame { position: relative; max-height: none; overflow: visible; }
+  .menu { display: none; }
+  .panel { display: none; }
+  .account { display: flex; }
+  .tabs { display: block; }
+  .bar { width: min(var(--content-width), calc(100% - 48px)); padding-block: 14px; }
+  .tabList { width: min(var(--content-width), calc(100% - 48px)); }
+}
+@media (min-width: 1024px) {
+  .bar, .tabList { width: min(var(--content-width), calc(100% - 80px)); }
+  .tagline { display: inline; }
+}
+@media (max-width: 380px) {
+  .logo img { height: 34px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab, .tab::after, .control, .theme button { transition: none; }
+}
+/* Tablets: tighter tabs so the four sections usually share one row. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tabList { gap: 0; }
+  .tab { padding: 0 10px; letter-spacing: 0.1em; }
+  .tab::after { left: 10px; right: 10px; }
+}

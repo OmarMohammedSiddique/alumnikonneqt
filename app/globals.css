@@ -75,6 +75,8 @@
   --inverse-accent: var(--brand-white);
   --shadow-subtle: none;
   --shadow-panel: none;
+  /* The sign-in card shadow, softened for working surfaces in the workspace. */
+  --workspace-card-shadow: 0 1px 2px rgb(23 38 48 / 6%), 0 12px 28px -18px rgb(49 104 162 / 30%);
   --space-unit: 0.25rem;
   --space-section: 3rem;
   --content-width: 76rem;
@@ -153,6 +155,7 @@
   /* 40% keeps control borders at 3:1 or better on the page and card surfaces. */
   --input: color-mix(in srgb, var(--brand-white) 40%, var(--brand-ink));
   --ring: var(--brand-red);
+  --workspace-card-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 32px -20px rgb(0 0 0 / 70%);
 }
 
 
@@ -208,22 +211,6 @@
   border: 1px solid var(--border);
 }
 
-.workspace-navigation {
-  --background: #172630;
-  --foreground: var(--inverse-foreground);
-  --card: #172630;
-  --muted: color-mix(in srgb, var(--brand-white) 2%, var(--brand-ink));
-  --muted-foreground: var(--inverse-muted);
-  --border: #344958;
-  --accent: var(--brand-red-deep);
-  --accent-foreground: var(--inverse-foreground);
-  --primary: var(--brand-red-deep);
-  --primary-foreground: var(--inverse-foreground);
-  --ring: var(--inverse-foreground);
-  color: var(--foreground);
-  background: var(--background);
-}
-
 @media (max-width: 767px) {
   #workspace { scroll-margin-top: var(--navigation-clearance); }
 }
@@ -243,13 +230,8 @@ dialog::backdrop {
 
 /* System cursors throughout; the variables remain as the single switch. */
 @media (hover: hover) and (pointer: fine) and (forced-colors: none) {
-  body, .dark, .workspace-navigation {
+  body, .dark {
     cursor: var(--paper-plane-cursor);
-  }
-
-  .workspace-navigation {
-    --paper-plane-cursor: auto;
-    --hand-cursor: pointer;
   }
 
   a, button, summary, select, label[for], [role="button"], .cursor-pointer,
@@ -282,4 +264,17 @@ dialog::backdrop {
   #workspace th { padding:16px; font-weight:500; }
   #workspace td { padding:16px; }
   #workspace select { min-height:44px; border-radius:8px; }
+}
+
+/* Anchors and focused fields clear the sticky workspace header and tabs. */
+.workspace-main [id],
+.workspace-main :is(input, textarea, select, button) {
+  scroll-margin-top: var(--navigation-clearance);
+}
+@media (min-width: 768px) {
+  #workspace { scroll-margin-top: 3rem; }
+  .workspace-main [id],
+  .workspace-main :is(input, textarea, select, button) {
+    scroll-margin-top: 4.5rem;
+  }
 }
