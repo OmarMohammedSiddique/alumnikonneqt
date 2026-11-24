@@ -906,10 +906,24 @@ values
    '{"role":"mentor","full_name":"Dex Demo"}', '{"fictional":true}', now(), now()),
   ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'real-mentor@test.local',
    '{"role":"mentor","full_name":"Rae Real"}', '{}', now(), now());
-update public.profiles set skills = '{Kestrel}', embedding = (
+-- Two statements: changing skills clears the embedding (zz_invalidate_profile_embedding).
+update public.profiles set skills = '{Kestrel}'
+where id in ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000010');
+update public.profiles set embedding = (
   select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
   from generate_series(1, 384) i)
 where id in ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000010');
+
+-- 22a: server-side callers with no signed-in member still see both kinds.
+do $$ begin
+  if (select count(*) from public.search_mentors('Kestrel', 10)) <> 2
+     or (select count(*) from public.match_mentors(
+           (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
+            from generate_series(1, 384) i), 50)
+         where id in ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000010')) <> 2 then
+    raise exception 'FAIL 22a: discovery without a signed-in member lost an account kind';
+  end if;
+end $$;
 
 -- 22a: discovery offers only Mentors of the caller's kind.
 select pg_temp.impersonate('00000000-0000-0000-0000-000000000001');
@@ -1067,7 +1081,8 @@ do $$ begin
   end if;
 end $$;
 
--- 22f: clients cannot read the account kind marker directly.
+-- 22f: clients cannot call the raw marker lookup, and anonymous callers
+-- cannot compare account kinds.
 do $$ begin
   if has_function_privilege('authenticated', 'public.is_fictional_account(uuid)', 'execute')
      or has_function_privilege('anon', 'public.is_fictional_account(uuid)', 'execute')
