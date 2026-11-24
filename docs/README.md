@@ -48,7 +48,7 @@ Where each document lives and what it is for. Dated working notes go in `notes/`
 
 | Location | What it holds |
 | --- | --- |
-| [guides/](guides/) | How-to guides (demo mode, the overnight loop, the planned usability study) and the secrets inventory ([guides/secrets.md](guides/secrets.md)) |
+| [guides/](guides/) | How-to guides (demo mode, the overnight loop, the planned usability study, the automated accessibility checks) and the secrets inventory ([guides/secrets.md](guides/secrets.md)) |
 | [notes/](notes/) | Dated working notes, including the overnight ML run summary of 17 November 2026 and the draft privacy policy and terms of 23 November 2026 |
 | [sprint-presentation-2026-11-05.md](sprint-presentation-2026-11-05.md), [sprint-review-readiness.md](sprint-review-readiness.md) | Sprint review material |
 | [source-reconciliation-2026-11-04.md](source-reconciliation-2026-11-04.md), [chat-worklog-2026-10-29.md](chat-worklog-2026-10-29.md) | Earlier reconciliation and worklog records |

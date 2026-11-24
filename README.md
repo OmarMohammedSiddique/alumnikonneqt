@@ -157,6 +157,7 @@ Git and must never be committed.
 | `node scripts/seed-dev.mjs` | Add fictional local Mentor and Mentee profiles with embeddings (marked for the demo switcher) |
 | `node scripts/end-demo-sessions.mjs` | After a demo, sign fictional demo accounts out everywhere (dry run unless `--apply`) |
 | `node scripts/eval/run-eval.mjs` | Reproduce the matching evaluation |
+| `npm run test:a11y` | Run the axe and control border accessibility checks on the public pages in both themes against a running production build (no database needed). See [accessibility checks](docs/guides/accessibility-checks.md) |
 | `node scripts/capture-readme-preview.mjs [base URL]` | Recapture the README landing page screenshot and walkthrough GIF (live site by default, or a local server; needs ffmpeg) |
 
 ## Verification
@@ -188,6 +189,8 @@ secrets:
 | --- | --- |
 | Quality checks | `npm ci`, lint, typecheck, `npm test`, production build (Node.js 22) |
 | Database permission tests | Starts a disposable local Supabase stack on the runner with the CLI version pinned in `package-lock.json`, applies all committed migrations, runs both SQL suites above, then always stops the stack. It never contacts a hosted project. |
+| Cold-start browser journey | Starts a separate disposable Supabase stack, builds the app against it and drives the sign-up, profile, matching, request and acceptance journey in Chrome from an empty database, then deletes its accounts and stops the stack |
+| Accessibility checks | Starts its own disposable Supabase stack and runs axe plus a 3:1 control border check on the public pages and the member, Mentor and administrator workspace in light and dark themes. Serious and critical findings fail the job unless they have their own issue. See [accessibility checks](docs/guides/accessibility-checks.md) |
 | ML regression tests | Python 3.12: the standard-library audit/preparation suites in `ml/`, then the training/metric suite in `ml/training_tests/` with pinned CPU PyTorch, NumPy, and scikit-learn. All fixtures are synthetic; no private data or held-out results are used. |
 
 To reproduce the database job from a clean checkout: `npm ci`, then
