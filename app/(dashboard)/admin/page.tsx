@@ -77,7 +77,7 @@ export default async function AdminPage() {
     ]);
 
   return (
-    <div className="grid min-w-0 w-full max-w-4xl gap-10 [&>section]:min-w-0">
+    <div className="grid min-w-0 w-full gap-10 [&>section]:min-w-0">
       <section>
         <h1 className="mb-1 text-2xl font-medium">User management</h1>
         <p className="mb-4 text-sm text-muted-foreground">
@@ -85,20 +85,20 @@ export default async function AdminPage() {
             ? "Assign roles and moderate profile visibility."
             : "Moderate profile visibility. Role changes require an admin."}
         </p>
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
+        <div className="workspace-table-wrap">
+          <table className="workspace-table">
             <thead>
-              <tr className="border-b bg-muted text-left">
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Role</th>
-                <th className="px-3 py-2 font-medium">Visibility</th>
-                <th className="px-3 py-2 font-medium">Joined</th>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Role</th>
+                <th scope="col">Visibility</th>
+                <th scope="col">Joined</th>
               </tr>
             </thead>
             <tbody>
               {profiles?.map((p) => (
-                <tr key={p.id} className="border-b last:border-0">
-                  <td className="px-3 py-2">
+                <tr key={p.id}>
+                  <td>
                     {p.full_name || "(no name)"}
                     {p.id === user.id && (
                       <span className="ml-1.5 text-xs text-muted-foreground">
@@ -106,14 +106,14 @@ export default async function AdminPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
                     {isAdmin && p.id !== user.id ? (
                       <RoleForm userId={p.id} name={p.full_name || "this user"} role={p.role} />
                     ) : (
                       <span className="capitalize">{p.role}</span>
                     )}
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
                     {p.id !== user.id ? (
                       <VisibilityForm userId={p.id} name={p.full_name || "this user"} visible={p.is_visible} />
                     ) : (
@@ -122,7 +122,7 @@ export default async function AdminPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-muted-foreground">
+                  <td className="text-muted-foreground">
                     {new Date(p.created_at).toLocaleDateString("en-GB")}
                   </td>
                 </tr>
@@ -137,25 +137,25 @@ export default async function AdminPage() {
         <p className="mb-4 text-sm text-muted-foreground">
           Pending member reports requiring moderation review.
         </p>
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
+        <div className="workspace-table-wrap">
+          <table className="workspace-table">
             <thead>
-              <tr className="border-b bg-muted text-left">
-                <th className="px-3 py-2 font-medium">When</th>
-                <th className="px-3 py-2 font-medium">Reported Member</th>
-                <th className="px-3 py-2 font-medium">Reporter</th>
-                <th className="px-3 py-2 font-medium">Reason</th>
-                <th className="px-3 py-2 font-medium">Context</th>
-                <th className="px-3 py-2 font-medium">Action</th>
+              <tr>
+                <th scope="col">When</th>
+                <th scope="col">Reported Member</th>
+                <th scope="col">Reporter</th>
+                <th scope="col">Reason</th>
+                <th scope="col">Context</th>
+                <th scope="col">Action</th>
               </tr>
             </thead>
             <tbody>
               {reports?.map((r) => (
-                <tr key={r.id} className="border-b last:border-0">
-                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground text-xs">
+                <tr key={r.id}>
+                  <td className="whitespace-nowrap text-muted-foreground text-xs">
                     {new Date(r.created_at).toLocaleString("en-GB")}
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
                     <span className="font-medium">
                       {r.reported?.full_name || "Unknown"}
                     </span>
@@ -165,20 +165,20 @@ export default async function AdminPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-muted-foreground">
+                  <td className="text-muted-foreground">
                     {r.reporter?.full_name || "Confidential Member"}
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
                     <span className="inline-flex items-center rounded-md bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">
                       {REPORT_REASON_LABELS[
                         r.reason as keyof typeof REPORT_REASON_LABELS
                       ] || r.reason}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground max-w-xs break-words">
+                  <td className="text-xs text-muted-foreground max-w-xs break-words">
                     {r.details || "(No additional notes provided)"}
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
                     <ReportReviewForm
                       reportId={r.id}
                       reportedName={r.reported?.full_name || "this member"}
@@ -188,7 +188,7 @@ export default async function AdminPage() {
               ))}
               {!reports?.length && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-4 text-muted-foreground">
+                  <td colSpan={6} className="text-muted-foreground">
                     No pending safety reports. Community queue is clean.
                   </td>
                 </tr>
@@ -203,30 +203,30 @@ export default async function AdminPage() {
         <p className="mb-4 text-sm text-muted-foreground">
           Most recent 50 platform events, written by database triggers.
         </p>
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
+        <div className="workspace-table-wrap">
+          <table className="workspace-table">
             <thead>
-              <tr className="border-b bg-muted text-left">
-                <th className="px-3 py-2 font-medium">When</th>
-                <th className="px-3 py-2 font-medium">Action</th>
-                <th className="px-3 py-2 font-medium">Detail</th>
+              <tr>
+                <th scope="col">When</th>
+                <th scope="col">Action</th>
+                <th scope="col">Detail</th>
               </tr>
             </thead>
             <tbody>
               {audit?.map((a) => (
-                <tr key={a.id} className="border-b last:border-0">
-                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                <tr key={a.id}>
+                  <td className="whitespace-nowrap text-muted-foreground">
                     {new Date(a.created_at).toLocaleString("en-GB")}
                   </td>
-                  <td className="px-3 py-2">{a.action}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                  <td>{a.action}</td>
+                  <td className="font-mono text-xs text-muted-foreground">
                     {JSON.stringify(a.detail)}
                   </td>
                 </tr>
               ))}
               {!audit?.length && (
                 <tr>
-                  <td colSpan={3} className="px-3 py-4 text-muted-foreground">
+                  <td colSpan={3} className="text-muted-foreground">
                     No events yet.
                   </td>
                 </tr>
