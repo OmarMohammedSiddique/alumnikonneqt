@@ -7,8 +7,12 @@ insert into auth.users(id, email, raw_user_meta_data) values
  ('55500000-0000-0000-0000-000000000003','audit-mentee@example.test','{"role":"mentee","full_name":"Audit Mentee"}'),
  ('55500000-0000-0000-0000-000000000004','audit-mentee2@example.test','{"role":"mentee","full_name":"Audit Second Mentee"}'),
  ('55500000-0000-0000-0000-000000000005','audit-member@example.test','{"role":"mentee","full_name":"Audit Member"}'),
- ('55500000-0000-0000-0000-000000000006','audit-mentee3@example.test','{"role":"mentee","full_name":"Audit Third Mentee"}');
-update public.profiles set role = 'admin' where id = '55500000-0000-0000-0000-000000000001';
+ ('55500000-0000-0000-0000-000000000006','audit-mentee3@example.test','{"role":"mentee","full_name":"Audit Third Mentee"}'),
+ ('55500000-0000-0000-0000-000000000007','audit-moderator@example.test','{"role":"mentee","full_name":"Audit Moderator"}'),
+ ('55500000-0000-0000-0000-000000000008','audit-admin2@example.test','{"role":"mentee","full_name":"Audit Second Admin"}');
+update public.profiles set role = 'admin'
+where id in ('55500000-0000-0000-0000-000000000001', '55500000-0000-0000-0000-000000000008');
+update public.profiles set role = 'moderator' where id = '55500000-0000-0000-0000-000000000007';
 insert into public.mentorship_requests(id, mentor_id, mentee_id, status, message) values
  ('55500000-0000-0000-0000-000000000010','55500000-0000-0000-0000-000000000002','55500000-0000-0000-0000-000000000003','accepted','private introduction'),
  ('55500000-0000-0000-0000-000000000011','55500000-0000-0000-0000-000000000002','55500000-0000-0000-0000-000000000004','pending','private introduction'),
@@ -29,7 +33,8 @@ do $$ begin
   end if;
 end $$;
 
--- TEST 1: a member cannot delete profiles or connections, and nothing is audited.
+-- TEST 1: members and moderators cannot delete profiles, connections or
+-- requests, and nothing is audited.
 set local role authenticated;
 select pg_temp.act_as('55500000-0000-0000-0000-000000000005');
 do $$
@@ -41,6 +46,22 @@ begin
   delete from public.connections where id = '55500000-0000-0000-0000-000000000020';
   get diagnostics affected = row_count;
   if affected <> 0 then raise exception 'FAIL 1: a member deleted a connection'; end if;
+  begin
+    delete from public.mentorship_requests where id = '55500000-0000-0000-0000-000000000011';
+    raise exception 'FAIL 1: a member deleted a request';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select pg_temp.act_as('55500000-0000-0000-0000-000000000007');
+do $$
+declare affected integer;
+begin
+  delete from public.profiles where id = '55500000-0000-0000-0000-000000000004';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 1: a moderator deleted a profile'; end if;
+  delete from public.connections where id = '55500000-0000-0000-0000-000000000020';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 1: a moderator deleted a connection'; end if;
 end $$;
 reset role;
 do $$ begin
@@ -134,7 +155,7 @@ do $$ begin
     select 1 from public.audit_logs
     where action = 'profile_deleted' and target_id = '55500000-0000-0000-0000-000000000003'
       and actor_id is null and detail ->> 'actor_role' = 'database'
-      and detail ->> 'db_user' = session_user::text
+      and detail ->> 'db_user' = 'postgres' -- CI runs this suite as postgres
       and (detail ->> 'cascaded')::boolean = true
   ) or not exists (
     select 1 from public.audit_logs
@@ -162,6 +183,23 @@ do $$ begin
   end if;
 end $$;
 reset role;
+
+-- TEST 7: an admin deleting their own profile is still recorded as an admin.
+set local role authenticated;
+select pg_temp.act_as('55500000-0000-0000-0000-000000000008');
+delete from public.profiles where id = auth.uid();
+reset role;
+do $$ begin
+  if not exists (
+    select 1 from public.audit_logs
+    where action = 'profile_deleted' and target_id = '55500000-0000-0000-0000-000000000008'
+      and actor_id = '55500000-0000-0000-0000-000000000008'
+      and detail ->> 'actor_role' = 'admin'
+      and (detail ->> 'cascaded')::boolean = false
+  ) then
+    raise exception 'FAIL 7: an admin deleting their own profile was not audited as an admin';
+  end if;
+end $$;
 
 select 'ALL ADMIN DELETION AUDIT TESTS PASSED' as result;
 rollback;
