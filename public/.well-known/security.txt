@@ -1,0 +1,7 @@
+# Report a suspected vulnerability in AlumniKonneQt privately.
+# Do not open a public issue. See the security policy for what to include.
+Contact: https://github.com/OmarMohammedSiddique/alumnikonneqt/security/advisories/new
+Expires: 2027-11-24T00:00:00.000Z
+Policy: https://github.com/OmarMohammedSiddique/alumnikonneqt/security/policy
+Preferred-Languages: en
+Canonical: https://alumnikonneqt.com/.well-known/security.txt
