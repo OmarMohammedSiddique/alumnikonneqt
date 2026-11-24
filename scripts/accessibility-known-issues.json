@@ -1,0 +1,4 @@
+{
+  "note": "Serious or critical findings that already have their own GitHub issue. Each entry matches a rule on a page path, optionally narrowed to one theme or account. Remove an entry once its issue is fixed. See docs/guides/accessibility-checks.md.",
+  "known": []
+}

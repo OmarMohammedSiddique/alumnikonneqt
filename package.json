@@ -25,7 +25,9 @@
     "auth:check": "node --env-file=.env.local scripts/check-google-auth.mjs",
     "test:registration": "node scripts/verify-registration.mjs",
     "test:otp": "node --experimental-strip-types scripts/verify-email-otp.mjs",
-    "test:account-email": "node scripts/verify-account-email.mjs"
+    "test:account-email": "node scripts/verify-account-email.mjs",
+    "test:a11y": "node scripts/verify-accessibility.mjs",
+    "test:a11y:full": "node scripts/run-accessibility.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
