@@ -14,7 +14,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Before any work that needs the database (running the app, tests against Supabase, migrations, seeds, verification scripts), run `akq-azure up`. It starts the VM, opens the tunnel and waits until the API answers. `npm run dev` runs it for you, and Claude Code runs it at session start.
 - Never start a local Supabase stack for this project on the Mac, including in worktrees: no `supabase start`, `npx supabase start` or `docker start`. If the database is unreachable, run `akq-azure status` and then `akq-azure up` instead.
 - Commands documented as `docker exec -i supabase_db_alumniconnect psql ...` (the RLS and Google sign-up policy tests) run against the Azure stack: either use `psql` on the tunnelled port 54322, or run the same `docker exec` on the VM with `ssh -o ClearAllForwardings=yes alumnikonneqt-azure '<command>'`.
-- Scripts that create or restart containers themselves (`scripts/run-cold-start.mjs`, `scripts/verify-email-otp.mjs`, `scripts/verify-account-email.mjs`) need a local Docker stack. Do not run them on the Mac: rely on the CI jobs, and ask Omar first if one has to run locally.
+- Scripts that create or restart containers themselves (`scripts/run-cold-start.mjs`, `scripts/verify-email-otp.mjs`, `scripts/verify-account-email.mjs`, `scripts/run-accessibility.mjs`) need a local Docker stack. Do not run them on the Mac: rely on the CI jobs, and ask Omar first if one has to run locally.
 - Do not stop or deallocate the VM by hand. It stops itself when idle, and the offplan-showcase project shares it.
 - Machines without the `akq-azure` helper (other contributors, CI) use the local stack described in the README.
 
