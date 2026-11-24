@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { ClockStrip } from "@/components/nairobi-clock";
 import Link from "next/link";
 import {
-  ArrowLeft,
   ExternalLink,
   Globe,
   GraduationCap,
@@ -11,6 +9,7 @@ import {
   Shield,
 } from "lucide-react";
 import { Brand, PrototypeNotice } from "@/components/brand";
+import { SiteHeader } from "@/components/site-header";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CookieSettingsTrigger } from "@/components/cookie-settings-trigger";
 import { Badge } from "@/components/ui/badge";
@@ -25,24 +24,7 @@ export default function AboutDeveloperPage() {
   return (
     <div className="min-h-svh bg-background text-foreground">
       {/* Top Identity & Navigation Header */}
-      <header className="border-b border-border bg-card">
-        <ClockStrip />
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" aria-label="AlumniKonneQt home" className="inline-flex items-center">
-            <Brand imageClassName="h-10 sm:h-11" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:text-sm"
-            >
-              <ArrowLeft className="size-4" aria-hidden="true" />
-              Back to Home
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader sticky />
 
       <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Hero Section */}
@@ -233,6 +215,7 @@ export default function AboutDeveloperPage() {
             >
               omarsiddique.com &rarr;
             </a>
+            <ThemeToggle />
           </nav>
         </div>
         <div className="mx-auto mt-4 max-w-5xl px-4 text-center sm:px-6 lg:px-8">

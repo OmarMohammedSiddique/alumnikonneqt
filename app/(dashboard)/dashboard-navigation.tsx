@@ -8,6 +8,7 @@ import { signOut } from "@/app/(auth)/actions";
 import { clearAllProfileDrafts } from "@/lib/profile-draft";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/brand";
+import { HomeLogoLink } from "@/components/home-logo-link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
@@ -66,7 +67,7 @@ export function DashboardNavigation({ name, role }: { name: string; role: string
   return (
     <>
       <header className="workspace-navigation sticky top-0 z-(--z-navigation) max-h-svh overflow-y-auto border-b px-4 py-3 md:hidden">
-        <Link href="/" aria-label="AlumniKonneQt home" className="inline-flex min-h-11 items-center" onClick={closeMenu}><Brand tone="dark" imageClassName="h-10" /></Link>
+        <HomeLogoLink className="inline-flex min-h-11 items-center" onNavigate={closeMenu}><Brand tone="dark" imageClassName="h-10" /></HomeLogoLink>
         <details ref={menu} className="group mt-2" onKeyDown={(event) => {
           if (event.key === "Escape" && menu.current?.open) {
             event.preventDefault();
@@ -84,7 +85,7 @@ export function DashboardNavigation({ name, role }: { name: string; role: string
         </details>
       </header>
       <aside className="workspace-navigation sticky top-0 hidden h-svh w-64 shrink-0 flex-col overflow-y-auto border-r bg-card px-4 py-6 md:flex">
-        <Link href="/" aria-label="AlumniKonneQt home" className="mb-8 inline-flex min-h-11 items-center px-2"><Brand tone="dark" imageClassName="h-11" /></Link>
+        <HomeLogoLink className="mb-8 inline-flex min-h-11 items-center px-2"><Brand tone="dark" imageClassName="h-11" /></HomeLogoLink>
         <p className="mb-3 px-3 text-xs font-medium text-muted-foreground">Your workspace</p>
         {links}{account}
       </aside>
