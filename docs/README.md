@@ -37,6 +37,7 @@ Where each document lives and what it is for. Dated working notes go in `notes/`
 
 | Location | What it holds |
 | --- | --- |
+| [images/](images/) | The README landing page screenshot and walkthrough GIF, and how to recapture them |
 | [verification/](verification/) | Verification records for sign-in, email, cold start, consent, the hosted demo and the v3 model comparison (`verification/ml-scratch-v3/`) |
 | [verification/security-review-2026-11-22.md](verification/security-review-2026-11-22.md) | Security, privacy, legal and accessibility review of 22 November 2026, with fixes and open issues |
 | [verification/load-test.md](verification/load-test.md) | Load test runs of the matching endpoint against the response-time requirement |

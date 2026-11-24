@@ -7,9 +7,9 @@
 
 [🌐 Open the live demo](https://alumnikonneqt.com)
 
-![AlumniKonneQt landing page preview](public/images/landing-preview.jpg)
+![AlumniKonneQt landing page: the headline "Find guidance in shared experience" over the clouds beside a boarding pass that pairs a Mentee with a Mentor through a shared skill](docs/images/readme-landing.jpg)
 
-[▶ Watch the short landing-page walkthrough](public/images/alumniconnect-demo.gif)
+![Animated walkthrough of the landing page: the logo, the cabin window seat, the window shade lowering, the hero over the clouds, how it works, the community section, why a profile was recommended, and the questions with the invitation to join](docs/images/readme-walkthrough.gif)
 
 An intelligent alumni mentorship platform that connects mentees with relevant
 mentors through semantic matching, explainable recommendations, and secure
@@ -156,6 +156,7 @@ Git and must never be committed.
 | `node scripts/seed-dev.mjs` | Add fictional local Mentor and Mentee profiles with embeddings (marked for the demo switcher) |
 | `node scripts/end-demo-sessions.mjs` | After a demo, sign fictional demo accounts out everywhere (dry run unless `--apply`) |
 | `node scripts/eval/run-eval.mjs` | Reproduce the matching evaluation |
+| `node scripts/capture-readme-preview.mjs [base URL]` | Recapture the README landing page screenshot and walkthrough GIF (live site by default, or a local server; needs ffmpeg) |
 
 ## Verification
 
