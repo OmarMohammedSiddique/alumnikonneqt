@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rejectCrossOrigin } from "@/lib/request-origin";
 import { generateEmbedding, MODEL_ID } from "@/lib/embedding/embed";
 import { EmbedGuard } from "@/lib/embedding/embed-guard";
 import { generateScratchEmbeddings, SCRATCH_DIMENSIONS, SCRATCH_MODEL_ID, SCRATCH_MODEL_VERSION } from "@/lib/scratch-model";
@@ -13,7 +14,9 @@ const guard = new EmbedGuard({ maxRequests: 3 });
 let running = 0;
 const fields = "id, full_name, headline, bio, skills, industry, graduation_year, accepting_requests";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const rejected = rejectCrossOrigin(request.headers);
+  if (rejected) return rejected;
   try {
     return await withRequestDeadline(compareModels, 55_000);
   } catch (reason) {
