@@ -6,9 +6,9 @@
 -- 2. Discovery offers each account only Mentors of its own kind: both
 --    discovery RPCs, and a computed field the model comparison pool filters on.
 --
--- Existing cross requests are left untouched. Once this is applied, a pending
--- cross request can still be cancelled or declined, but accepting it is
--- refused because the connection insert is refused.
+-- Existing cross requests and connections are left untouched. Once this is
+-- applied, a pending cross request can still be cancelled or declined, but
+-- accepting it is refused because the connection insert is refused.
 
 -- ---------------------------------------------------------------------------
 -- 1. Account kind helpers
@@ -33,6 +33,10 @@ $$;
 revoke execute on function public.is_fictional_account(uuid) from public, anon, authenticated;
 
 -- True when the signed-in caller and p_other_id are the same kind of account.
+-- Without a signed-in member (service role scripts such as scripts/eval) every
+-- account matches, so server-side tooling keeps the whole candidate pool.
+-- Members can learn from this whether another account is a demo account. That
+-- is accepted: demo accounts are labelled as such on their profiles.
 create or replace function public.shares_account_kind(p_other_id uuid)
 returns boolean
 language sql
@@ -40,7 +44,8 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
-  select public.is_fictional_account(auth.uid()) = public.is_fictional_account(p_other_id)
+  select auth.uid() is null
+    or public.is_fictional_account(auth.uid()) = public.is_fictional_account(p_other_id)
 $$;
 
 revoke execute on function public.shares_account_kind(uuid) from public, anon;
