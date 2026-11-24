@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { dispatchNotificationEmails } from "@/lib/notification-dispatch";
 import { createClient } from "@/lib/supabase/server";
 import {
-  ACCOUNT_KIND_REQUEST_MESSAGE,
-  isAccountKindRefusal,
+  requestInsertErrorMessage,
   updateMentorshipRequest,
   type RequestState,
 } from "@/lib/mentorship-request";
@@ -42,22 +41,7 @@ export async function createRequest(
     message,
   });
 
-  if (error) {
-    if (isAccountKindRefusal(error)) {
-      return { error: ACCOUNT_KIND_REQUEST_MESSAGE, ok: false };
-    }
-    if (error.code === "23505") {
-      return { error: "You already have a pending request to this mentor.", ok: false };
-    }
-    if (error.code === "42501") {
-      return {
-        error:
-          "This request could not be sent. Only mentees can send requests, and the Mentor must be visible and accepting new requests.",
-        ok: false,
-      };
-    }
-    return { error: "We couldn't send this request right now. Please try again.", ok: false };
-  }
+  if (error) return { error: requestInsertErrorMessage(error), ok: false };
 
   dispatchNotificationEmails();
   revalidatePath("/requests");
