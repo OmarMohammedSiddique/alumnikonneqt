@@ -47,6 +47,7 @@ Demo accounts share the live database with real members, but the database keeps 
 
 - A mentorship request, and therefore a connection, can only join two demo accounts or two real members. The database refuses a request in either direction between a demo account and a real member, whoever sends it, and the app shows "Demo accounts and members cannot send requests to each other."
 - Discovery offers each account only Mentors of its own kind: Recommended, Keyword search and the model comparison. Real members do not see demo Mentors, and the demo Mentee does not see real Mentors.
-- A cross request created before the migration is left in place. It can still be cancelled or declined, but accepting it is refused.
+- Cross requests and connections created before the migration are left in place. A pending cross request can still be cancelled or declined, but accepting it is refused.
+- On a site where every Mentor is a demo account, a newly registered real member sees no Mentors at all. Present with the demo accounts, not with a freshly registered one.
 
 An account counts as a demo account only when its `app_metadata.fictional` is `true`. Test accounts that must interact with demo accounts (for example in a study or a load test) need the same marker, and accounts that must interact with real members must not have it.
