@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Launch video project with bundled third-party scripts, not app source.
     "brag-output/**",
+    // Local agent worktrees and settings: other checkouts, ignored by Git.
+    ".claude/**",
   ]),
 ]);
 
