@@ -219,6 +219,21 @@ try {
       await setTheme(staff.page, theme);
       await visit(staff.page, '/admin', theme, 'admin');
     }
+
+    // Issue #160: the workspace phone menu opens with one Sign out button,
+    // closes with Escape and returns focus to its button.
+    await member.page.setViewportSize({ width: 320, height: 800 });
+    await member.page.goto(app.origin + '/requests');
+    const openMenu = member.page.getByRole('button', { name: 'Open navigation', exact: true });
+    await openMenu.click();
+    const closeMenu = member.page.getByRole('button', { name: 'Close navigation', exact: true });
+    assert.equal(await closeMenu.getAttribute('aria-expanded'), 'true', 'Workspace phone menu did not open');
+    assert.equal(await member.page.getByRole('button', { name: 'Sign out', exact: true }).count(), 1, 'Workspace phone menu should show one Sign out button');
+    await member.page.keyboard.press('Escape');
+    assert.equal(await openMenu.getAttribute('aria-expanded'), 'false', 'Escape did not close the workspace phone menu');
+    assert.ok(await openMenu.evaluate(node => node === document.activeElement), 'Escape did not return focus to the menu button');
+    console.log('PASS workspace phone menu: opens, one Sign out, Escape closes it and returns focus');
+    await member.page.setViewportSize({ width: 1366, height: 900 });
   }
 
   report.blocking = blocking;
