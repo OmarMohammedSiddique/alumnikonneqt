@@ -153,7 +153,7 @@ export default async function RequestsPage() {
                   {req.status === "accepted" ? (
                     <p className="text-sm text-muted-foreground">
                       Accepted. Your connection with {counterpartName} and its next steps are under{" "}
-                      <a href="#connections" className="font-medium text-primary underline-offset-4 hover:underline">Your connections</a>.
+                      <a href="#connections" className="font-medium text-primary underline underline-offset-4 hover:decoration-2">Your connections</a>.
                     </p>
                   ) : (
                     <JourneyTracker
