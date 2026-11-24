@@ -31,7 +31,7 @@ const BLOCKING = new Set(['serious', 'critical']);
 const PUBLIC_PAGES = ['/', '/about-developer', '/login', '/signup', '/forgot-password', '/privacy'];
 const known = JSON.parse(readFileSync(new URL('./accessibility-known-issues.json', import.meta.url), 'utf8')).known;
 const scans = [], blocking = [], tracked = [];
-const report = { recordedAt: new Date().toISOString(), source: process.env.A11Y_SOURCE ?? 'working-tree', scope, app: app.origin, axeTags: 'all rules', scans };
+const report = { recordedAt: new Date().toISOString(), source: process.env.A11Y_SOURCE ?? 'working-tree', scope, app: app.origin, axeRules: 'axe default rule set', scans };
 
 // Stored choices the app reads before hydration: functional storage allowed,
 // analytics declined, so no banner covers the page and the theme is honoured.
@@ -59,7 +59,10 @@ function controlBorderCheck() {
   const failures = [];
   for (const element of document.querySelectorAll(selector)) {
     const style = getComputedStyle(element), box = element.getBoundingClientRect();
-    if (box.width === 0 || box.height === 0 || style.visibility === 'hidden' || style.display === 'none' || element.closest('[aria-hidden=true],[inert]')) continue;
+    // Disabled controls are exempt from 1.4.11; hidden ones (closed details,
+    // zero opacity, aria-hidden) cannot be seen or reached.
+    if (element.matches(':disabled') || box.width === 0 || box.height === 0 || element.closest('[aria-hidden=true],[inert]')) continue;
+    if (!element.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
     const outside = element.parentElement ? behind(element.parentElement) : [255, 255, 255, 1];
     const fill = over(rgba(style.backgroundColor), outside);
     const sides = ['Top', 'Right', 'Bottom', 'Left'].map(side => ({ width: parseFloat(style[`border${side}Width`]) || 0, colour: style[`border${side}Color`], line: style[`border${side}Style`] }))
@@ -143,6 +146,7 @@ try {
     admin = createClient(db.href, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
     const ok = (result, label) => { assert.ok(!result.error, `${label}: ${result.error?.message ?? 'unavailable'}`); return result.data; };
     assert.equal(ok(await admin.from('profiles').select('id'), 'Empty-stack guard').length, 0, 'Refusing a nonempty database');
+    assert.equal(ok(await admin.auth.admin.listUsers({ page: 1, perPage: 1 }), 'Empty-account guard').users.length, 0, 'Refusing existing accounts');
     const run = randomUUID();
 
     // Same browser sign-up as the cold-start journey, on an auto-confirming stack.
@@ -161,12 +165,13 @@ try {
       await page.getByRole('button', { name: 'Create account', exact: true }).click();
       const proceed = page.getByRole('button', { name: 'Continue to your profile', exact: false });
       await proceed.waitFor();
-      await scan(page, { path: '/arrival', theme, account: label.toLowerCase(), state: 'after sign-up' });
-      await proceed.click(); await page.waitForURL('**/profile');
       const user = ok(await admin.auth.admin.listUsers({ page: 1, perPage: 100 }), 'Find disposable account').users.find(u => u.email === email);
       assert.ok(user, 'Disposable account was not created');
       const person = { context, page, id: user.id, label };
       accounts.push(person);
+      // The arrival pass plays over the sign-up page before moving on.
+      await scan(page, { path: '/signup', theme, account: label.toLowerCase(), state: 'arrival after sign-up' });
+      await proceed.click(); await page.waitForURL('**/profile');
       ok(await admin.from('email_preferences').upsert({ user_id: user.id, requests: false, connections: false, matches: false, reminders: false }), 'Disable fixture activity mail');
       return person;
     };
@@ -228,7 +233,9 @@ try {
   if (admin) {
     let cleaned = true;
     for (const person of accounts) { const { error } = await admin.auth.admin.deleteUser(person.id); if (error) cleaned = false; }
-    report.cleanup = cleaned; if (!cleaned) process.exitCode = 1;
+    report.cleanup = cleaned;
+    try { report.remainingAccounts = (await admin.auth.admin.listUsers({ page: 1, perPage: 100 })).data.users.length; } catch { report.remainingAccounts = null; }
+    if (!cleaned || report.remainingAccounts !== 0) process.exitCode = 1;
   }
   await browser?.close();
   writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
