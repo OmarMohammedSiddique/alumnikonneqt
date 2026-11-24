@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { dispatchNotificationEmails } from "@/lib/notification-dispatch";
 import { createClient } from "@/lib/supabase/server";
-import { updateMentorshipRequest, type RequestState } from "@/lib/mentorship-request";
+import {
+  ACCOUNT_KIND_REQUEST_MESSAGE,
+  isAccountKindRefusal,
+  updateMentorshipRequest,
+  type RequestState,
+} from "@/lib/mentorship-request";
 import { MAX_INTRODUCTION_LENGTH } from "@/lib/form-limits";
 import { isValidUuid } from "@/lib/profile-privacy";
 import { normaliseContact } from "@/lib/connection-journey";
@@ -29,7 +34,8 @@ export async function createRequest(
   if (!user) return { error: "Not authenticated.", ok: false };
 
   // RLS enforces: caller is a mentee, target is a visible mentor, no
-  // duplicate pending request (partial unique index).
+  // duplicate pending request (partial unique index). A trigger refuses a
+  // request between a fictional demo account and a real member (#109).
   const { error } = await supabase.from("mentorship_requests").insert({
     mentee_id: user.id,
     mentor_id: mentorId,
@@ -37,6 +43,9 @@ export async function createRequest(
   });
 
   if (error) {
+    if (isAccountKindRefusal(error)) {
+      return { error: ACCOUNT_KIND_REQUEST_MESSAGE, ok: false };
+    }
     if (error.code === "23505") {
       return { error: "You already have a pending request to this mentor.", ok: false };
     }
