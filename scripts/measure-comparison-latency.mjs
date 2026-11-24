@@ -25,7 +25,9 @@ try {
     const email = `latency-${randomUUID()}@example.test`;
     const password = `${randomUUID()}Aa1!`;
     const created = await admin.auth.admin.createUser({ email, password, email_confirm: true,
-      user_metadata: { role: "mentee", full_name: `Latency ${index}` } });
+      user_metadata: { role: "mentee", full_name: `Latency ${index}` },
+      // Marked fictional like the seeded Mentors, so the comparison keeps the same candidate pool (#109).
+      app_metadata: { fictional: true, fixture: "alumnikonneqt-latency-test" } });
     assert.ok(!created.error);
     users.push(created.data.user.id);
     await admin.from("profiles").update({ headline: "Graduate looking for logistics and aviation guidance",

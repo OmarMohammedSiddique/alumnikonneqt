@@ -83,7 +83,9 @@ try {
     const email = `load-${randomUUID()}@example.test`;
     const password = `${randomUUID()}Aa1!`;
     const created = await admin.auth.admin.createUser({ email, password, email_confirm: true,
-      user_metadata: { role: "mentee", full_name: `Load Test ${index}` } });
+      user_metadata: { role: "mentee", full_name: `Load Test ${index}` },
+      // Marked fictional like the seeded Mentors, so matching keeps the same candidate pool (#109).
+      app_metadata: { fictional: true, fixture: "alumnikonneqt-load-test" } });
     assert.ok(!created.error, created.error?.message);
     users.push(created.data.user.id);
     const updated = await admin.from("profiles").update({ headline: "Graduate looking for logistics and aviation guidance",
