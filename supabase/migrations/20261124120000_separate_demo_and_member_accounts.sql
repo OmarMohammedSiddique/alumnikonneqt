@@ -49,7 +49,7 @@ as $$
 $$;
 
 revoke execute on function public.shares_account_kind(uuid) from public, anon;
-grant execute on function public.shares_account_kind(uuid) to authenticated;
+grant execute on function public.shares_account_kind(uuid) to authenticated, service_role;
 
 -- Computed field for PostgREST: profiles?same_account_kind=is.true
 create or replace function public.same_account_kind(p public.profiles)
@@ -62,7 +62,7 @@ as $$
 $$;
 
 revoke execute on function public.same_account_kind(public.profiles) from public, anon;
-grant execute on function public.same_account_kind(public.profiles) to authenticated;
+grant execute on function public.same_account_kind(public.profiles) to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- 2. Refuse cross-kind requests and connections

@@ -914,14 +914,14 @@ update public.profiles set embedding = (
   from generate_series(1, 384) i)
 where id in ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000010');
 
--- 22a: server-side callers with no signed-in member still see both kinds.
+-- 22 (server side): callers with no signed-in member still see both kinds.
 do $$ begin
   if (select count(*) from public.search_mentors('Kestrel', 10)) <> 2
      or (select count(*) from public.match_mentors(
            (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
             from generate_series(1, 384) i), 50)
          where id in ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000010')) <> 2 then
-    raise exception 'FAIL 22a: discovery without a signed-in member lost an account kind';
+    raise exception 'FAIL 22 (server side): discovery without a signed-in member lost an account kind';
   end if;
 end $$;
 
