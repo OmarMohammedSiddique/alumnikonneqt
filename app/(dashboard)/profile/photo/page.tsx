@@ -24,7 +24,7 @@ export default async function ProfilePhotoPage({ searchParams }: { searchParams:
     <PageHeading title="Your profile picture">Choose a picture to help other members recognise you. Photos are accessible to signed-in members.</PageHeading>
     {retry && <p role="status">Your account was created, but your picture could not be uploaded. Please choose it again below.</p>}
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    {photoUrl && <img src={photoUrl.href} alt="Your current profile picture" className="size-28 border object-cover" />}
+    {photoUrl && <img src={photoUrl.href} alt="Your current profile picture" className="size-28 rounded-2xl border object-cover" />}
     <PhotoForm />
     <Link href="/profile" className="inline-flex min-h-11 items-center text-primary underline">Back to your profile</Link>
   </div>;

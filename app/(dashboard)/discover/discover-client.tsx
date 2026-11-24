@@ -268,7 +268,7 @@ export function DiscoverClient({
 
   return (
     <div className="grid gap-6" aria-busy={loading}>
-      <div className="grid gap-5 rounded-lg border bg-card p-4 sm:p-5">
+      <div className="grid gap-5 rounded-3xl border bg-card p-4 shadow-(--workspace-card-shadow) sm:p-6">
         {modeSelector}
 
         {mode === "keyword" && (
