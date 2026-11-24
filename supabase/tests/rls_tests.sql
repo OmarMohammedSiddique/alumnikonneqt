@@ -894,6 +894,89 @@ begin
   end if;
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- TEST 22: the block helper is not an RPC (20261124090000, issue 147).
+-- 22a: no block helper is left in the exposed public schema, and the private one
+-- is closed to the anonymous role.
+do $$ begin
+  if to_regprocedure('public.is_blocked_with(uuid)') is not null then
+    raise exception 'FAIL 22a: public.is_blocked_with is still callable through the Data API';
+  end if;
+  if to_regprocedure('private.is_blocked_with(uuid)') is null then
+    raise exception 'FAIL 22a: private.is_blocked_with is missing';
+  end if;
+  if has_schema_privilege('anon', 'private', 'usage')
+     or has_function_privilege('anon', 'private.is_blocked_with(uuid)', 'execute') then
+    raise exception 'FAIL 22a: anon can reach the private block helper';
+  end if;
+  if not has_function_privilege('authenticated', 'private.is_blocked_with(uuid)', 'execute') then
+    raise exception 'FAIL 22a: signed-in policies cannot evaluate the block helper';
+  end if;
+end $$;
+
+-- 22b: the policies that hid blocked members now evaluate the private helper.
+do $$
+declare missing text;
+begin
+  select string_agg(p.polname, ', ') into missing
+  from pg_policy p
+  where p.polname in ('profiles: read visible, own, or staff',
+                      'requests: insert as mentee',
+                      'profile photos: members read')
+    and coalesce(pg_get_expr(p.polqual, p.polrelid), '')
+        || coalesce(pg_get_expr(p.polwithcheck, p.polrelid), '')
+        not like '%private.is_blocked_with%';
+  if missing is not null then
+    raise exception 'FAIL 22b: policies no longer use the private block helper: %', missing;
+  end if;
+  if (select count(*) from pg_policy
+      where polname in ('profiles: read visible, own, or staff',
+                        'requests: insert as mentee',
+                        'profile photos: members read')) <> 3 then
+    raise exception 'FAIL 22b: a block-aware policy is missing';
+  end if;
+end $$;
+
+-- 22c: blocking still hides both members from each other after the move.
+update public.profiles set is_visible = true, member_visible = true, staff_hidden = false
+where id = '00000000-0000-0000-0000-000000000002';
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000006');
+do $$ begin
+  if not exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-000000000002') then
+    raise exception 'FAIL 22c: member cannot read a visible mentor before any block';
+  end if;
+end $$;
+select pg_temp.reset_role();
+insert into public.blocks (blocker_id, blocked_id)
+values ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000006');
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000006');
+do $$ begin
+  if exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-000000000002') then
+    raise exception 'FAIL 22c: blocked member still reads the blocker profile';
+  end if;
+  if exists (select 1 from public.search_mentors('Max', 10)
+             where id = '00000000-0000-0000-0000-000000000002') then
+    raise exception 'FAIL 22c: blocker returned by search_mentors';
+  end if;
+  begin
+    insert into public.mentorship_requests (mentee_id, mentor_id, message)
+    values (auth.uid(), '00000000-0000-0000-0000-000000000002', 'blocked request');
+    raise exception 'FAIL 22c: blocked member sent a request to the blocker';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+  end;
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000002');
+do $$ begin
+  if exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-000000000006') then
+    raise exception 'FAIL 22c: blocker still reads the blocked member profile';
+  end if;
+end $$;
+select pg_temp.reset_role();
+delete from public.blocks
+where blocker_id = '00000000-0000-0000-0000-000000000002'
+  and blocked_id = '00000000-0000-0000-0000-000000000006';
+
 select 'ALL RLS TESTS PASSED' as result;
 
 rollback;
