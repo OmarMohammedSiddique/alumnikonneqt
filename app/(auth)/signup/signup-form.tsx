@@ -163,7 +163,7 @@ export function SignupForm({ previewEnabled = false }: { previewEnabled?: boolea
             <p className="text-xs leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Proposed association privacy notice: </span>“Your information is protected under the Data Protection Act and will only be used for alumni association purposes.” <Link href="/privacy" className="font-medium text-primary underline underline-offset-4">Read the current prototype privacy position</Link>.</p>
           </div>
           <div className={styles.signupSubmit}>
-            <Button type="submit" data-login-primary className={styles.primary} disabled={pending}>{pending ? "Creating account…" : "Create account"}</Button>
+            <Button type="submit" className={styles.primary} disabled={pending}>{pending ? "Creating account…" : "Create account"}</Button>
             <p className="text-center text-xs text-muted-foreground">Already registered? <Link href="/login" className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">Sign in</Link></p>
           </div>
         </CardFooter>

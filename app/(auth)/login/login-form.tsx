@@ -47,7 +47,7 @@ export function LoginForm({ emailOtpEnabled = false, accountEmailEnabled = false
       </div>
       <TurnstileWidget action="login" onToken={setCaptchaToken} resetKey={state} />
       {state.error && <StatusMessage tone="error">{state.error}</StatusMessage>}
-      <Button type="submit" data-login-primary className={styles.primary} disabled={pending}><span>{pending ? "Signing in…" : "Sign in"}</span><ArrowUpRight size={18} aria-hidden="true" /></Button>
+      <Button type="submit" className={styles.primary} disabled={pending}><span>{pending ? "Signing in…" : "Sign in"}</span><ArrowUpRight size={18} aria-hidden="true" /></Button>
       {emailOtpEnabled && <Link href={next ? `/login/code?next=${encodeURIComponent(next)}` : "/login/code"} className={styles.codeLink}>Sign in with an email code</Link>}
     </form>
     <div className={styles.google}><GoogleSignIn next={next} compact /></div>

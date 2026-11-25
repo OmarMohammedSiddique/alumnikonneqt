@@ -34,13 +34,22 @@
 .signup{margin:20px 0 0;font-size:12px;color:var(--secondary);text-align:center}.signup a{color:var(--ink);font-weight:500;text-decoration:underline;text-underline-offset:4px;display:inline-flex;min-height:32px;align-items:center}
 .previewButton{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;column-gap:8px;width:fit-content;margin:24px auto 0;padding:8px 16px;min-height:48px;font-size:12px;color:var(--secondary);cursor:pointer;background:#ffffff80;border:0;border-radius:12px}.previewButton span{flex-basis:100%;font-size:10px;color:var(--secondary);text-align:center;margin-top:4px}.previewButton:disabled{cursor:wait}
 .journey button:focus-visible,.journey a:focus-visible{outline:2px solid #235d7d;outline-offset:4px}
-.ticket{display:grid;grid-template-columns:minmax(0,1fr) 160px;width:min(720px,100%);transform-origin:top left;position:relative;z-index:1;filter:drop-shadow(0 4px 6px #76aed729) drop-shadow(0 24px 28px #3168a233)}
+.ticket{display:grid;grid-template-columns:minmax(0,1fr) 160px;width:min(720px,100%);transform-origin:center;position:relative;z-index:1;filter:drop-shadow(0 4px 6px #76aed729) drop-shadow(0 24px 28px #3168a233)}
 .ticketMain,.ticketStub{background:#fcfdfb}.ticketMain{padding:28px 32px;border-radius:20px 0 0 20px;mask:radial-gradient(circle 12px at 100% 0,transparent 98%,#000) top,radial-gradient(circle 12px at 100% 100%,transparent 98%,#000) bottom;mask-size:100% 51%;mask-repeat:no-repeat}
 .ticketStub{border-radius:0 20px 20px 0;padding:32px 20px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:24px;text-align:center;mask:radial-gradient(circle 12px at 0 0,transparent 98%,#000) top,radial-gradient(circle 12px at 0 100%,transparent 98%,#000) bottom;mask-size:100% 51%;mask-repeat:no-repeat}
 .ticketStub:before{content:'';position:absolute;left:0;top:20px;bottom:20px;border-left:2px dotted #bdcdd8}.ticketHeading{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:16px}.ticketHeading>span:last-child{font-size:10px;color:var(--secondary)}
 .route{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:36px 0}.route>div{display:grid;gap:8px}.route>div:last-child{text-align:right}.route span,.ticketInfo span,.ticketStub span{font-size:11px;color:var(--secondary)}.route strong{font-size:48px;font-weight:400;letter-spacing:-2px;line-height:1}.route svg{color:#6a8ea5;width:28px;transform:rotate(45deg)}
 .ticketInfo{display:grid;grid-template-columns:1fr 1fr;gap:24px}.ticketInfo p{font-size:13px;margin:4px 0 0}.ticketNote{font-size:12px;line-height:1.6;color:var(--secondary);margin:24px 0}.ticketActions{border-top:1px solid #e2e7e8;padding-top:16px}.ticketActions p{font-size:11px;color:var(--secondary);margin:0 0 8px}.ticketActions button{display:inline-flex;align-items:center;gap:12px;min-height:44px;background:transparent;border:0;padding:0;font-size:13px;color:var(--ink);text-decoration:underline;text-underline-offset:4px;cursor:pointer}.ticketStub strong{display:block;margin-top:8px;font-size:24px;font-weight:400;letter-spacing:-1px}.barcode{width:100%;height:48px;background:repeating-linear-gradient(90deg,#172630 0 2px,transparent 2px 4px,#172630 4px 5px,transparent 5px 8px,#172630 8px 12px,transparent 12px 14px,#172630 14px 15px,transparent 15px 19px)}
-.flightViewport{position:fixed;inset:0;z-index:60;overflow:hidden;pointer-events:none}.flyingWindow{position:absolute;margin:0;transform-origin:center;will-change:transform}.flyingWindow .shade{display:none}.flyingWindow .cloudStrip{animation-duration:4s}
+/* The window opening at the start of the arrival: a frame and a sky, each revealed by a clip. */
+.flightViewport{position:fixed;inset:0;z-index:60;overflow:hidden;pointer-events:none}
+.flightFrame,.flightSky{position:absolute;inset:0}
+.flightFrame{background:#f7fafb}
+.flightSky{overflow:hidden;background:#89b9d7}
+.flightClouds{position:absolute;inset:-4%;background:url('/images/auth/clouds.webp') center/cover no-repeat;will-change:transform}
+.ticketActions .continueButton{gap:10px;padding:0 20px;min-height:48px;border-radius:16px;background:#101415;color:#fff;text-decoration:none;font-weight:500;transition:background-color .2s ease-out}
+.ticketActions .continueButton svg{transition:transform .25s cubic-bezier(.16,1,.3,1)}
+.ticketActions .continueButton:hover{background:#293b44}.ticketActions .continueButton:hover svg{transform:translateX(3px)}
+.ticketActions .continueButton:disabled,.ticketActions .continueButton[aria-disabled=true]{background:#405969;cursor:progress}
 @media(max-width:600px){.authLayout:has([data-sky-login], [data-sky-account]){padding:20px 20px 28px}.authLayout:has([data-sky-login], [data-sky-account])>main>header{margin-bottom:24px}.journey{--card-radius:40px;--card-padding:24px}.heading h1{font-size:21px}.stage{min-height:600px}.ticket{grid-template-columns:minmax(0,1fr) 80px}.ticketMain{padding:24px 16px}.ticketStub{padding:24px 10px}.ticketHeading{font-size:13px}.ticketHeading>span:last-child{font-size:9px}.route{gap:8px;margin:28px 0}.route strong{font-size:32px}.route span{font-size:10px}.route svg{width:20px;flex-shrink:0}.ticketInfo{grid-template-columns:1fr;gap:16px}.ticketInfo p{font-size:12px}.ticketStub strong{font-size:17px;letter-spacing:-.6px}.ticketStub span{font-size:9px}.ticketNote{font-size:11px}.ticketActions p{font-size:10px}}
 :global(.dark) .sky:after{background:linear-gradient(180deg,#0d2338b3,#142e45a6 50%,#18354bb3)}
 :global(.dark) .authLayout:has([data-sky-login], [data-sky-account])>main>footer,:global(.dark) .authLayout:has([data-sky-login], [data-sky-account])>main>footer p{color:#d5e4ef}
@@ -73,6 +82,9 @@
 :global(.dark) .windowView{background:#10233b}
 :global(.dark) .windowMark{background:#dae5f1;box-shadow:0 2px 8px #06122455,0 0 16px #bddef51a}
 :global(.dark) .shade{background:#dce6f0}
+:global(.dark) .flightFrame{background:#dae5f1}
+:global(.dark) .flightSky{background:#10233b}
+:global(.dark) .flightClouds{background-image:url('/images/auth/night-sky.webp')}
 :global(.dark) .card,:global(.dark) .signupPage .signupCard{background:rgb(232 241 250 / 91%);box-shadow:0 2px 8px #06122440,0 16px 40px -12px #02091666,0 40px 88px -24px #06234980}
 :global(.dark) .journey .previewButton{color:#e0ebf5;background:#132c45b3}
 :global(.dark) .previewButton span{color:#d1dfed}

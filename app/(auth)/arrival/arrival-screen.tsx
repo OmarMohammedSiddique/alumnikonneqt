@@ -13,6 +13,6 @@ export function ArrivalScreen({ destination }: { destination: string }) {
   return <LoginJourney ref={journey}>
     <WindowMark />
     <div className={styles.heading}><h1>You’re signed in</h1><p>Preparing your mentorship boarding pass.</p></div>
-    <button type="button" data-login-primary className={styles.arrivalButton} onClick={() => { void journey.current?.play({ kind: "signed-in", destination }); }}>Show your boarding pass</button>
+    <button type="button" className={styles.arrivalButton} onClick={() => { void journey.current?.play({ kind: "signed-in", destination }); }}>Show your boarding pass</button>
   </LoginJourney>;
 }
