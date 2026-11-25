@@ -77,6 +77,20 @@
 .hero h1 > span { color: var(--accent-on-sky); }
 .heroDescription { max-width: 460px; margin-top: 26px; color: var(--on-sky-muted); font-size: 18px; line-height: 1.65; }
 .heroActions { margin-top: 34px; display: flex; align-items: center; flex-wrap: wrap; gap: 14px 28px; }
+/* The intro's jet keeps flying once the shade is down: a small airliner
+   crosses the band of sky above the hero copy every 26 seconds. The band
+   spans the viewport but sits behind every hero element (z-index -1 inside
+   the page's isolated stack) and clips the jet, so it can neither cover the
+   copy nor widen the page. It only exists when motion is welcome. */
+.hero { position: relative; }
+.heroSky { display: none; position: absolute; z-index: -1; top: 0; height: 64px; inset-inline: calc(50% - 50vw); overflow: hidden; pointer-events: none; }
+.heroPlane { position: absolute; top: 50%; left: 0; width: 100%; }
+.heroJet { position: relative; display: block; width: 46px; translate: 0 -50%; rotate: -3deg; }
+.heroJet svg { position: relative; display: block; width: 100%; height: auto; filter: drop-shadow(0 1px 1.5px #1d3f6b80); }
+.heroTrail { position: absolute; right: 82%; top: 44%; width: 360%; height: 2px; border-radius: 99px; background: linear-gradient(90deg, transparent, #ffffff8c 55%, #ffffffe6); }
+:global(.dark) .heroJet svg { filter: brightness(0.86) drop-shadow(0 1px 1.5px #00000099); }
+:global(.dark) .heroTrail { background: linear-gradient(90deg, transparent, #ffffff40 55%, #ffffffa6); }
+@keyframes heroCross { 0% { transform: translateX(-60px); } 58%, 100% { transform: translateX(calc(100% + 200px)); } }
 .heroDisclosure { margin: 26px 0 0; text-align: left !important; max-width: 440px; font-size: 11px; line-height: 1.7; color: var(--on-sky-muted) !important; }
 
 /* Boarding pass: the same pass a visitor receives after signing in. */
@@ -206,7 +220,9 @@
   .heroCopy > .rise:nth-child(5) { animation-delay: 320ms; }
   .heroVisual { animation: land 1.2s var(--ease-out) 200ms both; }
   .pass { animation: hover 7s ease-in-out 1.6s infinite; }
-  .page:has([data-cabin-intro]:not([data-phase="done"])) :is(.rise, .heroVisual) { animation-play-state: paused; }
+  .heroSky { display: block; }
+  .heroPlane { animation: heroCross 26s linear 1.5s infinite backwards; }
+  .page:has([data-cabin-intro]:not([data-phase="done"])) :is(.rise, .heroVisual, .heroPlane) { animation-play-state: paused; }
   @supports (animation-timeline: view()) {
     .reveal { animation: reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 42%; }
   }
@@ -239,6 +255,8 @@
   .container, .communityInner { width: calc(100% - 40px); }
   .hero { grid-template-columns: 1fr; padding-block: 36px 32px; gap: 44px; }
   .hero h1 { font-size: clamp(40px, 11.5vw, 56px); }
+  .heroSky { height: 36px; }
+  .heroJet { width: 34px; }
   .heroDescription { font-size: 16px; }
   .primaryButton { width: 100%; }
   .heroActions .primaryButton { width: auto; flex: 1 1 220px; }
