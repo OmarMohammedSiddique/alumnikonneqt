@@ -112,7 +112,7 @@ export function TurnstileWidget({ action, onToken, resetKey }: { action: string;
 
 const STATUS_ICON: Record<TurnstileStatus, { Icon: LucideIcon; iconClassName: string; textClassName: string }> = {
   checking: { Icon: LoaderCircle, iconClassName: "motion-safe:animate-spin", textClassName: "text-muted-foreground" },
-  verified: { Icon: ShieldCheck, iconClassName: "", textClassName: "font-medium text-success-foreground" },
+  verified: { Icon: ShieldCheck, iconClassName: "", textClassName: "font-medium text-foreground" },
   failed: { Icon: CircleAlert, iconClassName: "", textClassName: "font-medium text-destructive" },
   expired: { Icon: RotateCw, iconClassName: "", textClassName: "text-muted-foreground" },
 };
@@ -121,10 +121,10 @@ const STATUS_ICON: Record<TurnstileStatus, { Icon: LucideIcon; iconClassName: st
 function TurnstileStatusLine({ status }: { status: TurnstileStatus }) {
   const { Icon, iconClassName, textClassName } = STATUS_ICON[status];
   return (
-    <p role="status" aria-live="polite" aria-atomic="true" data-turnstile-status={status} className={`inline-flex items-center gap-1.5 text-xs ${textClassName}`}>
+    <div role="status" aria-live="polite" aria-atomic="true" data-turnstile-status={status} className={`inline-flex items-center gap-1.5 text-xs ${textClassName}`}>
       <Icon className={`size-3.5 shrink-0 ${iconClassName}`} aria-hidden="true" />
       {TURNSTILE_STATUS_MESSAGE[status]}
-    </p>
+    </div>
   );
 }
 
