@@ -221,28 +221,30 @@
   justify-content: flex-end;
   gap: 28px;
 }
+/* The hint sits on a solid Cod Gray plate, so it reads at well over 4.5:1
+   whatever part of the cabin or sky is behind it, in light and dark. */
 .hint {
   position: absolute;
   left: 50%;
   bottom: max(28px, env(safe-area-inset-bottom));
   translate: -50% 0;
-  padding: 12px 16px;
-  border: 0;
-  background: transparent;
+  max-width: calc(100vw - 24px);
+  padding: 14px 20px;
+  border: 1px solid #ffffff3d;
+  background: #0d0d0d;
   color: #fff;
-  font: 500 12px/1 var(--font-geist-mono), ui-monospace, monospace;
-  letter-spacing: 0.16em;
+  font: 600 15px/1 var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: pre;
-  text-shadow: 0 1px 8px #00000080;
+  box-shadow: 0 8px 24px #0000006b;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.35s var(--ease-out);
 }
 .hint:focus-visible {
   outline: 2px solid #fff;
-  outline-offset: 2px;
-  border-radius: 8px;
+  outline-offset: 3px;
 }
 .intro[data-phase="cabin"] .topbar {
   opacity: 1;
@@ -320,7 +322,7 @@
 @media (max-width: 600px) {
   .topbar { grid-template-columns: 1fr auto; padding: 16px 18px; font-size: 10px; letter-spacing: 0.12em; }
   .brand img { height: 24px; }
-  .hint { font-size: 11px; letter-spacing: 0.12em; }
+  .hint { padding: 12px; font-size: 12.5px; letter-spacing: 0.06em; }
 }
 
 @media (prefers-reduced-motion: reduce) {
