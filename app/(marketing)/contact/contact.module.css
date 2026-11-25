@@ -42,41 +42,10 @@
 }
 .skip:focus { transform: translateY(0); }
 
-/* Header */
+/* Header: the shared site bar, recoloured for the ink stage. */
 .header {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 8px 24px;
-  min-height: 72px;
-  padding: 10px var(--gutter);
-  border-bottom: 1px solid var(--stage-rule);
-}
-.home { display: inline-flex; align-items: center; justify-self: start; min-height: 44px; }
-.clock { color: var(--stage-muted); }
-.nav {
-  display: flex;
-  justify-self: end;
-  align-items: center;
-  gap: clamp(16px, 2.4vw, 36px);
-  font: 500 12px/1 var(--mono);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.nav a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--stage-muted);
-  white-space: nowrap;
-  transition: color var(--motion-fast) ease-out;
-}
-.nav a:hover { color: #ffffff; }
-.nav a[aria-current="page"] {
-  color: #ffffff;
-  text-decoration: underline;
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 8px;
+  --foreground: #ffffff;
+  --background: var(--stage);
 }
 
 /* Stage */
@@ -409,14 +378,11 @@
 }
 
 @media (max-width: 1020px) {
-  .header { grid-template-columns: 1fr auto; }
-  .clock { grid-row: 2; grid-column: 1 / -1; padding-bottom: 6px; }
   .ticket { --stub: 260px; }
 }
 
 /* Narrow screens: the stub tears off along the bottom instead of the side. */
 @media (max-width: 760px) {
-  .navOptional { display: none !important; }
   .ticket { grid-template-columns: minmax(0, 1fr); }
   .pass { --notch-a: 0 100%; --notch-b: 100% 100%; border-radius: 4px 4px 0 0; }
   .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; }

@@ -3,9 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Send } from "lucide-react";
 import mark from "@/app/icon.png";
-import { Brand, PrototypeNotice } from "@/components/brand";
+import { PrototypeNotice } from "@/components/brand";
 import { CookieSettingsTrigger } from "@/components/cookie-settings-trigger";
-import { NairobiClock } from "@/components/nairobi-clock";
+import { SiteHeader } from "@/components/site-header";
 import { SUPPORT_EMAIL, supportMailto } from "@/lib/site";
 import { CopyAddress } from "./copy-address";
 import styles from "./contact.module.css";
@@ -48,18 +48,7 @@ export default function ContactPage() {
     <div className={styles.page}>
       <a className={styles.skip} href="#main">Skip to content</a>
 
-      <header className={styles.header}>
-        <Link href="/" aria-label="AlumniKonneQt home" className={styles.home}>
-          <Brand tone="dark" imageClassName="h-9 sm:h-10" />
-        </Link>
-        <NairobiClock className={styles.clock} />
-        <nav aria-label="Main navigation" className={styles.nav}>
-          <Link href="/#how-it-works" className={styles.navOptional}>How it works</Link>
-          <Link href="/about-developer" className={styles.navOptional}>About</Link>
-          <Link href="/login">Sign in</Link>
-          <Link href="/contact" aria-current="page">Contact</Link>
-        </nav>
-      </header>
+      <SiteHeader sticky tone="dark" className={styles.header} />
 
       <main id="main" className={styles.main}>
         <div className={styles.tag}>
