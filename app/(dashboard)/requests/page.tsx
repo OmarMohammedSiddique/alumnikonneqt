@@ -108,7 +108,7 @@ export default async function RequestsPage() {
     contacts?.find((row) => row.connection_id === connectionId && row.user_id === userId)?.contact ?? null;
 
   return (
-    <div className="grid max-w-4xl gap-10">
+    <div className="grid gap-10">
       <section>
         <PageHeading title={isMentor ? "Incoming requests" : "Your requests"}>
           {isMentor ? "Review introductions from Mentees seeking your guidance." : "Keep track of the introductions you have made and their responses."}
@@ -119,7 +119,7 @@ export default async function RequestsPage() {
             {isMentor ? "When a Mentee requests your guidance, their introduction will appear here." : "Explore the community and send a mentorship request when you find a relevant connection."}
           </EmptyState>
         )}
-        <div className="grid gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] gap-3">
           {requests?.map((req) => {
             const isIncoming = req.mentor_id === user.id;
             const counterpartId = isIncoming ? req.mentee_id : req.mentor_id;
@@ -153,7 +153,7 @@ export default async function RequestsPage() {
                   {req.status === "accepted" ? (
                     <p className="text-sm text-muted-foreground">
                       Accepted. Your connection with {counterpartName} and its next steps are under{" "}
-                      <a href="#connections" className="font-medium text-primary underline-offset-4 hover:underline">Your connections</a>.
+                      <a href="#connections" className="font-medium text-primary underline underline-offset-4 hover:decoration-2">Your connections</a>.
                     </p>
                   ) : (
                     <JourneyTracker
@@ -187,7 +187,7 @@ export default async function RequestsPage() {
             Shared contact details could not be loaded just now. Refresh the page to try again.
           </StatusMessage>
         )}
-        <div className="grid gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] gap-4">
           {connections?.map((c) => {
             const isConnectionMentor = c.mentor_id === user.id;
             const partner = isConnectionMentor ? c.mentee : c.mentor;
