@@ -83,15 +83,24 @@ interface PlanForm {
   dispatch: (formData: FormData) => void;
   pending: boolean;
   state: PlanActionState;
+  /** The failed save whose editor the member cancelled; it is not restored. */
+  dismissed: number;
 }
+
+/** The editor a rename or milestone edit belongs to. */
+const editorKeyFor = (state: PlanActionState) =>
+  state.intent === "rename_objective" ? `objective:${state.targetId}`
+    : state.intent === "edit_milestone" ? `milestone:${state.targetId}` : null;
 
 /**
  * The last failed save of one form, kept until that same form saves, so what
  * was typed and its error survive other actions in the plan.
  */
-function useRetained(state: PlanActionState, intent: PlanIntent, targetId: string): PlanActionState | null {
+function useRetained(form: PlanForm, intent: PlanIntent, targetId: string): PlanActionState | null {
+  const { state } = form;
   const matches = state.intent === intent && state.targetId === targetId;
-  const [kept, setKept] = useState<PlanActionState | null>(() => (matches && state.error ? state : null));
+  const [kept, setKept] = useState<PlanActionState | null>(() =>
+    matches && state.error && state.nonce !== form.dismissed ? state : null);
   const [seen, setSeen] = useState(state.nonce);
   if (state.nonce !== seen) {
     setSeen(state.nonce);
@@ -147,9 +156,15 @@ function useFieldFocus(kept: PlanActionState | null, field: PlanField, onMount =
   return ref;
 }
 
-/** Marks only the field the error is about as invalid and links the message. */
-const fieldProps = (kept: PlanActionState | null, errorId: string, field: PlanField) =>
-  failedField(kept) === field ? { "aria-invalid": true as const, "aria-describedby": errorId } : {};
+/**
+ * Links the message to the field it is about. Only validation errors mark the
+ * field invalid; others (an ended session, an unavailable item) are not about
+ * what was typed, so they are linked to the title without blaming it.
+ */
+const fieldProps = (kept: PlanActionState | null, errorId: string, field: PlanField) => {
+  if (failedField(kept) !== field) return {};
+  return kept?.field ? { "aria-invalid": true as const, "aria-describedby": errorId } : { "aria-describedby": errorId };
+};
 
 interface MentorshipPlanProps {
   connectionId: string;
@@ -166,7 +181,9 @@ export function MentorshipPlan({ connectionId, objectives, partnerName, viewerId
   const [editing, setEditing] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [seenNonce, setSeenNonce] = useState(state.nonce);
+  const [dismissed, setDismissed] = useState(0);
   const returnFocusTo = useRef<string | null>(null);
+  const submitter = useRef<HTMLElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const baseId = useId();
 
@@ -186,15 +203,19 @@ export function MentorshipPlan({ connectionId, objectives, partnerName, viewerId
       returnFocusTo.current = null;
     }
   }, [editing]);
-  // Any save whose control has gone (a removal, or an example button or add
-  // form replaced after adding) moves focus to the plan heading.
+  // When a save removes the control that sent it (a removal, an example
+  // button, or an add form replaced at its limit), focus moves to the plan
+  // heading. Checking the sender, not just document.activeElement, matters
+  // because Safari and Firefox on macOS do not focus buttons on click.
   useEffect(() => {
-    if (state.ok && (!document.activeElement || document.activeElement === document.body)) {
+    const sender = submitter.current;
+    if (state.ok && sender && !sender.isConnected
+        && (!document.activeElement || document.activeElement === document.body)) {
       headingRef.current?.focus();
     }
   }, [state.nonce, state.ok]);
 
-  const form: PlanForm = { dispatch, pending, state };
+  const form: PlanForm = { dispatch, pending, state, dismissed };
 
   // Field errors show beside their form; when that form is gone (closed or at
   // its limit), the error shows at the foot of the plan instead.
@@ -212,14 +233,24 @@ export function MentorshipPlan({ connectionId, objectives, partnerName, viewerId
     setConfirming(null);
     setEditing(key);
   };
-  const closeEditor = () => setEditing(null);
+  const closeEditor = () => {
+    // Cancelling an editor whose save failed discards that failure too.
+    if (state.error && editing !== null && editing === editorKeyFor(state)) setDismissed(state.nonce);
+    setEditing(null);
+  };
 
   const summary = summarisePlan(objectives, today);
   const headingId = `${baseId}-heading`;
   const nameFor = (userId: string | null) => (userId === viewerId ? "you" : userId ? partnerName : null);
 
   return (
-    <section aria-labelledby={headingId} className="grid gap-3 rounded-md border p-3">
+    <section
+      aria-labelledby={headingId}
+      className="grid gap-3 rounded-md border p-3"
+      onSubmitCapture={(event) => {
+        submitter.current = ((event.nativeEvent as SubmitEvent).submitter as HTMLElement | null) ?? null;
+      }}
+    >
       <div className="grid gap-1">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h4 id={headingId} ref={headingRef} tabIndex={-1} className="text-sm font-medium">Mentorship plan</h4>
@@ -279,7 +310,7 @@ export function MentorshipPlan({ connectionId, objectives, partnerName, viewerId
       <p role="status" className="sr-only">
         {pending ? "Saving the mentorship plan." : state.ok ? state.message : ""}
       </p>
-      {state.error && !pending && !errorHasField && (
+      {state.error && !pending && !errorHasField && state.nonce !== dismissed && (
         <StatusMessage tone="error">{state.error}</StatusMessage>
       )}
     </section>
@@ -316,7 +347,7 @@ function EmptyPlan({ connectionId, partnerName, form }: { connectionId: string; 
 function AddObjectiveForm({ connectionId, form, first }: { connectionId: string; form: PlanForm; first: boolean }) {
   const inputId = useId();
   const errorId = useId();
-  const kept = useRetained(form.state, "add_objective", connectionId);
+  const kept = useRetained(form, "add_objective", connectionId);
   const ref = useFieldFocus(kept, "title");
   return (
     <form action={form.dispatch} className="grid gap-1.5">
@@ -544,7 +575,7 @@ function AddMilestoneForm({ objectiveId, form }: { objectiveId: string; form: Pl
   const titleId = useId();
   const dateId = useId();
   const errorId = useId();
-  const kept = useRetained(form.state, "add_milestone", objectiveId);
+  const kept = useRetained(form, "add_milestone", objectiveId);
   const ref = useFieldFocus(kept, "title");
   const dateRef = useFieldFocus(kept, "target_date");
   return (
@@ -634,7 +665,7 @@ function TitleEditor({ intent, targetId, label, value, form, onCancel }: {
 }) {
   const inputId = useId();
   const errorId = useId();
-  const kept = useRetained(form.state, intent, targetId);
+  const kept = useRetained(form, intent, targetId);
   const ref = useFieldFocus(kept, "title", true);
   return (
     <EditorForm form={form} onCancel={onCancel}>
@@ -662,7 +693,7 @@ function MilestoneEditor({ milestone, form, onCancel }: { milestone: PlanMilesto
   const titleId = useId();
   const dateId = useId();
   const errorId = useId();
-  const kept = useRetained(form.state, "edit_milestone", milestone.id);
+  const kept = useRetained(form, "edit_milestone", milestone.id);
   const ref = useFieldFocus(kept, "title", true);
   const dateRef = useFieldFocus(kept, "target_date");
   return (
