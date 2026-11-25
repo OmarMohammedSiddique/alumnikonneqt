@@ -25,10 +25,11 @@ remain the next step.
 available, a larger synthetic dataset (`synth-v3`) was generated and a model was
 trained from random weights, locked and tested once. On the synthetic test it is
 better than MiniLM, level with TF-IDF and worse than both on occupations it never
-saw. That result is on generated labels only. **Your next step is now concrete:
-grade the blind review sheet** `ml/data/synth-v3/human_review_sheet.csv`
-(instructions beside it, issue #115), then take the result and the open questions
-in section 9 of the v3 write-up to your supervisor. Steps 1 to 7 below describe
+saw. That result is on generated labels only. **Update, 25 November 2026:** the
+blind review sheet `ml/data/synth-v3/human_review_sheet.csv` has been graded by
+the developer in full (#115) and by an independent reviewer on 80 pairs (#181);
+the results are in section 7 of the v3 write-up. The next step is to take them
+and the open questions in section 9 to your supervisor. Steps 1 to 7 below describe
 the original small pilot and remain the path for any real, reviewed data.
 
 ## Where you are

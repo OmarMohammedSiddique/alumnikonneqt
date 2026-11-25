@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef } from "react";
-import { Compass, House, Inbox, LifeBuoy, LogOut, Menu, ShieldCheck, UserRound } from "lucide-react";
+import { useId, useRef, useState } from "react";
+import { Compass, House, Inbox, LifeBuoy, LogOut, Menu, ShieldCheck, UserRound, X } from "lucide-react";
 import { signOut } from "@/app/(auth)/actions";
 import { clearAllProfileDrafts } from "@/lib/profile-draft";
-import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/brand";
 import { HomeLogoLink } from "@/components/home-logo-link";
+import { ClockStrip } from "@/components/nairobi-clock";
 import { ThemeToggle } from "@/components/theme-toggle";
+import styles from "./workspace-frame.module.css";
 
 const NAV = [
   { href: "/discover", label: "Discover Mentors", icon: Compass },
@@ -17,35 +18,42 @@ const NAV = [
   { href: "/requests", label: "Requests & connections", icon: Inbox },
 ];
 
+// The workspace header: the window seat sky with the Nairobi clock, logo and
+// account actions, then an opaque strip of section tabs that stays in view.
+// On phones the sections and account actions sit in a menu under the logo.
 export function DashboardNavigation({ name, role }: { name: string; role: string }) {
   const pathname = usePathname();
-  const menu = useRef<HTMLDetailsElement>(null);
+  const [open, setOpen] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
   const items = role === "admin" || role === "moderator"
     ? [...NAV, { href: "/admin", label: "Administration", icon: ShieldCheck }]
     : NAV;
 
-  const closeMenu = () => {
-    if (menu.current) menu.current.open = false;
-  };
+  const closeMenu = () => setOpen(false);
+  const current = (href: string) => (pathname.startsWith(href) ? "page" : undefined);
 
-  const links = (
-    <nav aria-label="Workspace" className="flex flex-1 flex-col gap-1.5">
-      {items.map(({ href, label, icon: Icon }) => (
-        <Link key={href} href={href} onClick={closeMenu}
-          aria-current={pathname.startsWith(href) ? "page" : undefined}
-          className={`flex min-h-11 items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors duration-(--motion-fast) ease-(--ease-out) ${pathname.startsWith(href) ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-          <Icon className="size-4 shrink-0" aria-hidden="true" />{label}
-        </Link>
-      ))}
-    </nav>
+  const member = (
+    <div className={styles.member}>
+      <span className={styles.initial} aria-hidden="true">{name.trim().slice(0, 1).toUpperCase()}</span>
+      <div className="min-w-0">
+        <p className={styles.memberName}>{name}</p>
+        <p className={styles.memberRole}>{role}</p>
+      </div>
+    </div>
   );
 
-  const account = (
-    <div className="mt-6 grid gap-3 pt-5">
-      <div className="flex min-w-0 items-center gap-3 px-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-md border bg-background text-sm font-medium" aria-hidden="true">{name.trim().slice(0, 1).toUpperCase()}</span>
-        <div className="min-w-0"><p className="truncate text-sm font-medium">{name}</p><p className="text-xs capitalize text-muted-foreground">{role}</p></div>
-      </div>
+  // The phone menu keeps the visible "Appearance" label from the old sidebar.
+  const account = (inMenu: boolean) => (
+    <>
+      {member}
+      <Link href="/" onClick={closeMenu} className={styles.control}>
+        <House aria-hidden="true" />Public homepage
+      </Link>
+      <Link href="/contact" onClick={closeMenu} className={styles.control}>
+        <LifeBuoy aria-hidden="true" />Contact support
+      </Link>
+      <ThemeToggle className={styles.theme} showLabel={inMenu} />
       <form
         action={signOut}
         onSubmit={() => {
@@ -54,41 +62,65 @@ export function DashboardNavigation({ name, role }: { name: string; role: string
           }
         }}
       >
-        <Button type="submit" variant="ghost" className="w-full justify-start px-3"><LogOut aria-hidden="true" />Sign out</Button>
+        <button type="submit" className={styles.control}><LogOut aria-hidden="true" />Sign out</button>
       </form>
-      <Link href="/" onClick={closeMenu} className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"><House className="size-4" aria-hidden="true" />Public homepage</Link>
-      <Link href="/contact" onClick={closeMenu} className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"><LifeBuoy className="size-4" aria-hidden="true" />Contact support</Link>
-      <div className="pt-3 mt-1 px-3">
-        <ThemeToggle showLabel />
-      </div>
-    </div>
+    </>
   );
 
   return (
     <>
-      <header className="workspace-navigation sticky top-0 z-(--z-navigation) max-h-svh overflow-y-auto border-b px-4 py-3 md:hidden">
-        <HomeLogoLink className="inline-flex min-h-11 items-center" onNavigate={closeMenu}><Brand tone="dark" imageClassName="h-10" /></HomeLogoLink>
-        <details ref={menu} className="group mt-2" onKeyDown={(event) => {
-          if (event.key === "Escape" && menu.current?.open) {
+      <header
+        className={styles.frame}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && open) {
             event.preventDefault();
             event.stopPropagation();
             closeMenu();
-            menu.current.querySelector("summary")?.focus();
+            toggle.current?.focus();
           }
-        }}>
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium hover:bg-muted [&::-webkit-details-marker]:hidden">
-            <Menu aria-hidden="true" className="size-5" />
-            <span className="group-open:hidden">Open navigation</span>
-            <span className="hidden group-open:inline">Close navigation</span>
-          </summary>
-          <div className="pb-3 pt-4">{links}{account}</div>
-        </details>
+        }}
+      >
+        <ClockStrip className={styles.clock} />
+        <div className={styles.bar}>
+          <div className={styles.brand}>
+            <HomeLogoLink className={styles.logo} onNavigate={closeMenu}>
+              <Brand imageClassName="h-10 sm:h-11" />
+            </HomeLogoLink>
+            <p className={styles.tagline}>Your workspace</p>
+          </div>
+          <div className={styles.account}>{account(false)}</div>
+          <button
+            ref={toggle}
+            type="button"
+            className={`${styles.menu} ${styles.control}`}
+            aria-expanded={open}
+            aria-controls={panelId}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+            {open ? "Close navigation" : "Open navigation"}
+          </button>
+        </div>
+        <div id={panelId} className={styles.panel} hidden={!open}>
+          <nav aria-label="Workspace" className={styles.panelLinks}>
+            {items.map(({ href, label, icon: Icon }) => (
+              <Link key={href} href={href} onClick={closeMenu} aria-current={current(href)} className={styles.panelLink}>
+                <Icon aria-hidden="true" />{label}
+              </Link>
+            ))}
+          </nav>
+          <div className={styles.panelAccount}>{account(true)}</div>
+        </div>
       </header>
-      <aside className="workspace-navigation sticky top-0 hidden h-svh w-64 shrink-0 flex-col overflow-y-auto border-r bg-card px-4 py-6 md:flex">
-        <HomeLogoLink className="mb-8 inline-flex min-h-11 items-center px-2"><Brand tone="dark" imageClassName="h-11" /></HomeLogoLink>
-        <p className="mb-3 px-3 text-xs font-medium text-muted-foreground">Your workspace</p>
-        {links}{account}
-      </aside>
+      <nav aria-label="Workspace" className={styles.tabs}>
+        <div className={styles.tabList}>
+          {items.map(({ href, label, icon: Icon }) => (
+            <Link key={href} href={href} aria-current={current(href)} className={styles.tab}>
+              <Icon aria-hidden="true" />{label}
+            </Link>
+          ))}
+        </div>
+      </nav>
     </>
   );
 }

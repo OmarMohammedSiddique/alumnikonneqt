@@ -75,6 +75,8 @@
   --inverse-accent: var(--brand-white);
   --shadow-subtle: none;
   --shadow-panel: none;
+  /* The sign-in card shadow, softened for working surfaces in the workspace. */
+  --workspace-card-shadow: 0 1px 2px rgb(23 38 48 / 6%), 0 12px 28px -18px rgb(49 104 162 / 30%);
   --space-unit: 0.25rem;
   --space-section: 3rem;
   --content-width: 76rem;
@@ -153,6 +155,7 @@
   /* 40% keeps control borders at 3:1 or better on the page and card surfaces. */
   --input: color-mix(in srgb, var(--brand-white) 40%, var(--brand-ink));
   --ring: var(--brand-red);
+  --workspace-card-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 32px -20px rgb(0 0 0 / 70%);
 }
 
 
@@ -208,22 +211,6 @@
   border: 1px solid var(--border);
 }
 
-.workspace-navigation {
-  --background: #172630;
-  --foreground: var(--inverse-foreground);
-  --card: #172630;
-  --muted: color-mix(in srgb, var(--brand-white) 2%, var(--brand-ink));
-  --muted-foreground: var(--inverse-muted);
-  --border: #344958;
-  --accent: var(--brand-red-deep);
-  --accent-foreground: var(--inverse-foreground);
-  --primary: var(--brand-red-deep);
-  --primary-foreground: var(--inverse-foreground);
-  --ring: var(--inverse-foreground);
-  color: var(--foreground);
-  background: var(--background);
-}
-
 @media (max-width: 767px) {
   #workspace { scroll-margin-top: var(--navigation-clearance); }
 }
@@ -243,13 +230,8 @@ dialog::backdrop {
 
 /* System cursors throughout; the variables remain as the single switch. */
 @media (hover: hover) and (pointer: fine) and (forced-colors: none) {
-  body, .dark, .workspace-navigation {
+  body, .dark {
     cursor: var(--paper-plane-cursor);
-  }
-
-  .workspace-navigation {
-    --paper-plane-cursor: auto;
-    --hand-cursor: pointer;
   }
 
   a, button, summary, select, label[for], [role="button"], .cursor-pointer,
@@ -270,16 +252,72 @@ dialog::backdrop {
 @layer components {
   .workspace-panel { --panel-radius:24px; --panel-padding:16px; border-radius:var(--panel-radius); }
   .workspace-shortcuts { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:32px; }
-  .workspace-shortcut { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:8px 12px; border-radius:8px; font-size:12px; color:var(--muted-foreground); }
-  .workspace-shortcut:hover { background:var(--muted); color:var(--foreground); }
-  .empty-state { padding:32px 24px; border-radius:24px; background:var(--card); }
+  .workspace-shortcut { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:8px 14px; border:1px solid var(--border); border-radius:14px; background:var(--card); font-size:13px; color:var(--foreground); transition:background var(--motion-fast) var(--ease-out); }
+  .workspace-shortcut:hover { background:var(--muted); }
+  .empty-state { padding:32px 24px; border:1px solid var(--border); border-radius:24px; background:var(--card); }
   .empty-state h2,.empty-state h3 { font-size:18px; font-weight:500; }
   .empty-state p { max-width:60ch; margin-top:8px; font-size:14px; color:var(--muted-foreground); line-height:1.7; }
   .empty-state-action { margin-top:20px; }
   #workspace h1 { font-weight:500; letter-spacing:-.025em; }
   #workspace h2,#workspace h3 { font-weight:500; }
-  #workspace table { background:var(--card); }
-  #workspace th { padding:16px; font-weight:500; }
-  #workspace td { padding:16px; }
-  #workspace select { min-height:44px; border-radius:8px; }
+  /* Admin tables: boarding pass labels over plain, high-contrast rows. */
+  .workspace-table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:20px; background:var(--card); box-shadow:var(--workspace-card-shadow); }
+  .workspace-table { width:100%; border-collapse:collapse; font-size:var(--text-label); }
+  .workspace-table thead tr { background:var(--surface); border-bottom:1px solid var(--border); }
+  .workspace-table th { padding:14px 16px; text-align:left; white-space:nowrap; font:600 11px/1.3 var(--font-geist-mono), ui-monospace, monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--muted-foreground); }
+  .workspace-table td { padding:14px 16px; vertical-align:middle; border-bottom:1px solid var(--border); }
+  .workspace-table tbody tr:last-child td { border-bottom:0; }
+  .workspace-table tbody tr:hover { background:color-mix(in srgb, var(--muted) 55%, transparent); }
+  #workspace select { min-height:44px; border-radius:var(--radius); }
 }
+
+/* Anchors and focused fields clear the sticky workspace header and tabs. */
+.workspace-main [id],
+.workspace-main :is(input, textarea, select, button) {
+  scroll-margin-top: var(--navigation-clearance);
+}
+@media (min-width: 768px) {
+  #workspace { scroll-margin-top: 3rem; }
+  .workspace-main [id],
+  .workspace-main :is(input, textarea, select, button) {
+    scroll-margin-top: 4.5rem;
+  }
+}
+
+/* Workspace surfaces share the landing page tokens: dark ink actions as on
+   sign-in, softer corners, and in dark mode the landing page's night paper.
+   Lists, forms and tables stay opaque and high contrast. */
+.workspace-shell {
+  --radius: 0.75rem;
+  --primary: #101415;
+  --primary-foreground: var(--brand-white);
+  --primary-hover: #293b44;
+  /* About 4:1 on cards and 3.7:1 on the page, so control edges reach 3:1. */
+  --input: #6f8291;
+}
+.dark .workspace-shell {
+  --surface: #0a121a;
+  --background: #0d1720;
+  --card: #101a24;
+  --card-foreground: #edf2f7;
+  --popover: #132030;
+  --popover-foreground: #edf2f7;
+  --foreground: #edf2f7;
+  --muted: #172533;
+  --muted-foreground: #b1bfcc;
+  --secondary: #1d2d3c;
+  --secondary-foreground: #edf2f7;
+  --border: #26384a;
+  /* 4.4:1 against the cards, so control edges stay visible. */
+  --input: #6f8396;
+  --primary: #eef4f9;
+  --primary-foreground: #101415;
+  --primary-hover: #cddbe7;
+}
+.workspace-main [data-slot="button"].bg-primary:hover { background-color: var(--primary-hover); }
+.workspace-main [data-slot="card"] {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--workspace-card-shadow);
+}
+.workspace-main [data-slot="card-footer"] { border-radius: 0 0 23px 23px; }

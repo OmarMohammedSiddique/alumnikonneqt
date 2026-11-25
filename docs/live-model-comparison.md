@@ -134,8 +134,9 @@ Local verification does not establish hosted behaviour. The signed-in check on
 the hosted site is left for the project owner. Issue #26 remains open: the
 scratch model does not drive the default Recommended list, stored vectors were
 not migrated, and the full request and acceptance journey with the scratch
-model has not been verified. Human review of labels (#115) and supervisor
-acceptance (#25, #3) are also still open.
+model has not been verified. Supervisor acceptance (#25, #3) is also still
+open. Human review of the labels is done on a sample (#115, #181): see
+`docs/ml-scratch-v3.md` section 7.
 
 To stop the comparison, change Discover's initial mode back to `semantic` and
 remove its comparison button. To go back to the v1 pilot, point

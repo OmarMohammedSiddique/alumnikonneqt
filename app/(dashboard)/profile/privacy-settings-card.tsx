@@ -79,7 +79,7 @@ export function PrivacySettingsCard({
   };
 
   return (
-    <div className="grid gap-6 mt-8">
+    <div className="grid gap-6">
       {/* Visibility preference */}
       <Card>
         <CardHeader>
@@ -108,7 +108,7 @@ export function PrivacySettingsCard({
             </div>
           ) : null}
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border p-4 bg-surface">
+          <div className="flex flex-col @md:flex-row @md:items-center justify-between gap-4 rounded-lg border p-4 bg-surface">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Public discovery preference</span>
