@@ -237,7 +237,6 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: pre;
-  box-shadow: 0 8px 24px #0000006b;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.35s var(--ease-out);
@@ -249,8 +248,11 @@
 .intro[data-phase="cabin"] .topbar {
   opacity: 1;
 }
+/* The plate fades in just before the split-flap letters start to settle, so
+   it never shows as an empty box. Reduced motion drops the delay. */
 .intro[data-phase="cabin"] .hint {
   opacity: 1;
+  transition-delay: 0.75s;
 }
 
 /* Preload panel: logo assembles in horizontal bands, then the panel lifts. */
