@@ -231,15 +231,16 @@ judgement. This was not used to change any label.
 
 | Risk | What was done | What remains |
 | --- | --- | --- |
-| Inherited errors: the rule, O*NET's United States view of occupations and the writer's habits are all baked in | Rule documented and unit-tested; machine audit run; O*NET version and licence recorded | Human review of the blind sheet (#115); East African job titles and career paths are not modelled |
+| Inherited errors: the rule, O*NET's United States view of occupations and the writer's habits are all baked in | Rule documented and unit-tested; machine audit run; O*NET version and licence recorded | Wider independent human review (the developer graded 320 pairs, #115; one independent reviewer 80, #181); East African job titles and career paths are not modelled |
 | Limited diversity: one writer model, 26 styles, 7 kinds of goal | Three difficulty cases, career changers, two prompt templates, disjoint styles | Real profiles are messier, multilingual and less complete |
 | Easier than reality: the writer was told what each person offers or wants, and usually says it | Sparse and vocabulary-mismatch cases; hard negatives; a no-suitable-Mentor subset | Real goals are often unstated or mixed |
 | Contamination between splits | People, held-out clusters, styles and the test prompt template are disjoint and checked by the gate, which caught and blocked one real leak | The same writer model and the same seen occupations appear in every split, so in-domain results favour a model trained here |
 | Missing cases | | Non-English text, several goals per Mentee, Mentors who decline requests, availability, location preference, protected characteristics (none are generated or used) |
 
-A synthetic-only test cannot establish performance on real alumni. The missing independent checks are the
-human review sheet (`ml/data/synth-v3/human_review_sheet.csv`, 40 test Mentees with 8 candidates each,
-issue #115) and evaluation with real users (#5).
+A synthetic-only test cannot establish performance on real alumni. The human review sheet
+(`ml/data/synth-v3/human_review_sheet.csv`, 40 test Mentees with 8 candidates each) has been graded by the
+developer in full (#115) and by an independent reviewer on 80 pairs (#181); the results are in
+`docs/ml-scratch-v3.md` section 7. The missing independent check is evaluation with real users (#5).
 
 ## Reproduce
 
