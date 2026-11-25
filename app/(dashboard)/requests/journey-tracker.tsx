@@ -4,12 +4,14 @@ import {
   getNextStep,
   JOURNEY_STAGES,
   type JourneyInput,
+  type JourneyPlanProgress,
   type JourneyViewer,
 } from "@/lib/connection-journey";
 
 interface JourneyTrackerProps extends JourneyInput {
   viewer: JourneyViewer;
   partnerName: string;
+  plan?: JourneyPlanProgress | null;
 }
 
 /** Stage-by-stage view of a mentorship request, with the next step for this person. */

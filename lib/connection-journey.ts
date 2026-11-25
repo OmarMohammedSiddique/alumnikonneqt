@@ -53,9 +53,38 @@ export interface NextStep {
   body: string;
 }
 
+/** Plan progress for the Ongoing mentorship guidance (#187). */
+export interface JourneyPlanProgress {
+  objectives: number;
+  objectivesMet: number;
+  done: number;
+  total: number;
+  overdue: number;
+}
+
 interface NextStepInput extends JourneyInput {
   viewer: JourneyViewer;
   partnerName: string;
+  plan?: JourneyPlanProgress | null;
+}
+
+function ongoingStep(plan: JourneyPlanProgress | null | undefined): NextStep {
+  const title = "Your mentorship is under way";
+  if (!plan || plan.objectives === 0) {
+    return { title, body: "Agree two or three objectives together in the mentorship plan, and a rhythm that suits you both, such as a monthly call. You can update your contact details here at any time." };
+  }
+  if (plan.total === 0) {
+    return { title, body: "Break each objective into milestones with target dates, so you can both see progress against the plan." };
+  }
+  if (plan.objectivesMet === plan.objectives) {
+    return { title: "Your objectives are met", body: "Every milestone in your plan is done. Take a moment to reflect together, then agree what comes next or add a new objective." };
+  }
+  const progress = `${plan.done} of ${plan.total} ${plan.total === 1 ? "milestone" : "milestones"} done.`;
+  if (plan.overdue > 0) {
+    const overdue = plan.overdue === 1 ? "1 milestone is past its target date" : `${plan.overdue} milestones are past their target dates`;
+    return { title, body: `${progress} ${overdue}, so agree a new date or a smaller next step at your next conversation.` };
+  }
+  return { title, body: `${progress} Keep a regular rhythm, such as a monthly call, and mark milestones done as you reach them.` };
 }
 
 export function getNextStep(input: NextStepInput): NextStep {
@@ -88,7 +117,7 @@ export function getNextStep(input: NextStepInput): NextStep {
       }
       return { title: `Waiting for ${name}`, body: `You have shared how to reach you, so ${name} can now get in touch to arrange a first conversation. Once it has happened, either of you can mark it as held.` };
     case "ongoing":
-      return { title: "Your mentorship is under way", body: "Agree a few goals together and a rhythm that suits you both, such as a monthly call. You can update your contact details here at any time." };
+      return ongoingStep(input.plan);
     default:
       return { title: "Connected", body: `You and ${name} are connected.` };
   }
