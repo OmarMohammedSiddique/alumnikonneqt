@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useRef, useState } from "react";
-import { Compass, House, Inbox, LogOut, Menu, ShieldCheck, UserRound, X } from "lucide-react";
+import { Compass, House, Inbox, LifeBuoy, LogOut, Menu, ShieldCheck, UserRound, X } from "lucide-react";
 import { signOut } from "@/app/(auth)/actions";
 import { clearAllProfileDrafts } from "@/lib/profile-draft";
 import { Brand } from "@/components/brand";
@@ -49,6 +49,9 @@ export function DashboardNavigation({ name, role }: { name: string; role: string
       {member}
       <Link href="/" onClick={closeMenu} className={styles.control}>
         <House aria-hidden="true" />Public homepage
+      </Link>
+      <Link href="/contact" onClick={closeMenu} className={styles.control}>
+        <LifeBuoy aria-hidden="true" />Contact support
       </Link>
       <ThemeToggle className={styles.theme} showLabel={inMenu} />
       <form

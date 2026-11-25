@@ -40,6 +40,7 @@ Where each document lives and what it is for. Dated working notes go in `notes/`
 | [images/](images/) | The README landing page screenshot and walkthrough GIF, and how to recapture them |
 | [verification/](verification/) | Verification records for sign-in, email, cold start, consent, the hosted demo and the v3 model comparison (`verification/ml-scratch-v3/`) |
 | [verification/security-review-2026-11-22.md](verification/security-review-2026-11-22.md) | Security, privacy, legal and accessibility review of 22 November 2026, with fixes and open issues |
+| [verification/launch-review-2026-11-25.md](verification/launch-review-2026-11-25.md) | Pre-release launch review of 25 November 2026 before v1.3.0: changes since 22 November, earlier fixes re-checked on the live site |
 | [verification/load-test.md](verification/load-test.md) | Load test runs of the matching endpoint against the response-time requirement |
 | [environment-verification.md](environment-verification.md) | Local environment verification |
 | [dependency-review-2026-11-04.md](dependency-review-2026-11-04.md) | Dependency alert review |
