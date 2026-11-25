@@ -110,8 +110,10 @@ begin
       return new;
     end if;
     perform pg_advisory_xact_lock(hashtextextended('mentorship_milestones:' || new.objective_id::text, 0));
+    -- Counting within the caller's connection means an objective from another
+    -- connection meets the foreign key error, never the limit.
     if (select count(*) from public.mentorship_milestones
-        where objective_id = new.objective_id) >= 8 then
+        where objective_id = new.objective_id and connection_id = new.connection_id) >= 8 then
       raise exception 'An objective can have at most 8 milestones'
         using errcode = 'check_violation', hint = 'milestone_limit';
     end if;

@@ -1107,6 +1107,9 @@ begin
   update public.mentorship_milestones set completed_at = now();
   get diagnostics affected = row_count;
   if affected <> 0 then raise exception 'FAIL 22f: staff completed a milestone'; end if;
+  delete from public.mentorship_milestones;
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22f: staff deleted a milestone'; end if;
   delete from public.mentorship_objectives;
   get diagnostics affected = row_count;
   if affected <> 0 then raise exception 'FAIL 22f: staff deleted an objective'; end if;
@@ -1197,6 +1200,23 @@ do $$ begin
     raise exception 'FAIL 22i: outsider insert was not refused';
   exception when insufficient_privilege then null;
   end;
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Probe step');
+    raise exception 'FAIL 22i: outsider milestone insert was not refused';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+-- A participant elsewhere aiming at a full objective from another connection
+-- meets the foreign key, not the limit. Nina (3) is in d2 only.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000003');
+do $$ begin
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d2', 'Probe step');
+    raise exception 'FAIL 22i: cross-connection probe was not refused';
+  exception when foreign_key_violation then null;
+  end;
 end $$;
 
 -- 22j: blocking hides the plan from both people until they unblock.
@@ -1243,6 +1263,29 @@ do $$ begin
   end if;
   if not exists (select 1 from public.mentorship_objectives where connection_id = '00000000-0000-0000-0000-0000000000d2') then
     raise exception 'FAIL 22k: deleting one connection removed another plan';
+  end if;
+end $$;
+
+-- 22l: deleting the profile that completed a milestone clears completed_by
+-- (ON DELETE SET NULL) and keeps the completion time. Written as postgres,
+-- since members can never name someone else as the completer.
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated',
+        'authenticated', 'plan-former@test.local', '{"role":"mentee","full_name":"Former Member"}', now(), now());
+do $$
+declare v uuid; r record;
+begin
+  insert into public.mentorship_milestones (objective_id, connection_id, title)
+  select id, connection_id, 'Completed by a former member'
+  from public.mentorship_objectives
+  where connection_id = '00000000-0000-0000-0000-0000000000d2' and title = 'abc'
+  returning id into v;
+  update public.mentorship_milestones set completed_at = now() where id = v;
+  update public.mentorship_milestones set completed_by = '00000000-0000-0000-0000-00000000000a' where id = v;
+  delete from public.profiles where id = '00000000-0000-0000-0000-00000000000a';
+  select completed_at, completed_by into r from public.mentorship_milestones where id = v;
+  if r.completed_by is not null or r.completed_at is null then
+    raise exception 'FAIL 22l: profile deletion did not clear completed_by cleanly';
   end if;
 end $$;
 
