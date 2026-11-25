@@ -9,6 +9,7 @@ Before and after screenshots for issue #160, which gives the signed-in workspace
 - Captured with `node --env-file=.env.local scripts/capture-workspace-screens.mjs <folder>`: full-page JPEGs at 390 and 1440 pixels wide, in light and dark mode, with reduced motion. They were recompressed afterwards with ffmpeg (`-q:v 11`) to keep both folders near 8 MB.
 - `before/` is `main` at `1ea56fc`, captured before any change on the branch. The later main commits #161 to #163 do not touch the workspace interface. `after/` is the branch head.
 - The capture reported no horizontal overflow on any page in either set.
+- Later on 25 November 2026 the profile, profile picture, email preferences and requests pages changed to use the full width of wide screens (two columns from 1024 pixels, one column on phones and tablets). Their 20 `after/` files (`mentee-profile*`, `mentee-requests*` and `mentor-requests*`) were captured again the same way, from a development server on port 3060, and the rest of `after/` is unchanged.
 
 Two differences come from the capture, not the design:
 
