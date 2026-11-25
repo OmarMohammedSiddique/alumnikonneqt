@@ -15,6 +15,7 @@ import {
   Plane,
 } from "lucide-react";
 import { LandingIntro } from "@/components/cabin-intro/landing-intro";
+import { Jet } from "@/components/cabin-intro/jet";
 import styles from "./landing.module.css";
 
 const STEPS = [
@@ -65,6 +66,7 @@ export default async function LandingPage() {
       <SiteHeader sticky />
       <main id="main">
         <section className={`${styles.container} ${styles.hero}`} aria-labelledby="hero-heading">
+          <div className={styles.heroSky} aria-hidden="true"><span className={styles.heroPlane}><span className={styles.heroJet}><span className={styles.heroTrail} /><Jet /></span></span></div>
           <div className={styles.heroCopy}>
             <p className={`${styles.eyebrow} ${styles.rise}`}>Kenya Airways alumni · Mentorship</p>
             <h1 id="hero-heading" className={styles.rise}>Find guidance in<br /><span>shared experience.</span></h1>
