@@ -83,11 +83,13 @@ export function TurnstileWidget({ action, onToken, resetKey }: { action: string;
         "timeout-callback": () => { onTokenRef.current(""); report({ type: "timeout" }); },
         "error-callback": () => { onTokenRef.current(""); report({ type: "error" }); },
       });
-    }).catch(() => { onTokenRef.current(""); report({ type: "load-error" }); });
+    }).catch(() => { if (cancelled) return; onTokenRef.current(""); report({ type: "load-error" }); });
     return () => {
       cancelled = true;
       if (widgetRef.current && window.turnstile) window.turnstile.remove(widgetRef.current);
       widgetRef.current = undefined;
+      // A re-rendered widget starts a fresh check.
+      report({ type: "reset" });
     };
   }, [action, report]);
 
