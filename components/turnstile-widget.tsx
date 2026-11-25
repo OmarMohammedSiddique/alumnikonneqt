@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CircleAlert, LoaderCircle, RotateCw, ShieldCheck, type LucideIcon } from "lucide-react";
+import { CircleAlert, CircleCheck, LoaderCircle, RotateCw, type LucideIcon } from "lucide-react";
 import { CAPTCHA_FIELD } from "@/lib/turnstile";
 import {
   INITIAL_TURNSTILE_STATUS,
@@ -114,7 +114,8 @@ export function TurnstileWidget({ action, onToken, resetKey }: { action: string;
 
 const STATUS_ICON: Record<TurnstileStatus, { Icon: LucideIcon; iconClassName: string; textClassName: string }> = {
   checking: { Icon: LoaderCircle, iconClassName: "motion-safe:animate-spin", textClassName: "text-muted-foreground" },
-  verified: { Icon: ShieldCheck, iconClassName: "", textClassName: "font-medium text-foreground" },
+  // A green tick reinforces "verified"; at least 3:1 against the card in both themes (5.4:1 light, 10:1 dark).
+  verified: { Icon: CircleCheck, iconClassName: "text-[#1f7a3d] dark:text-[#4ade80]", textClassName: "font-medium text-foreground" },
   failed: { Icon: CircleAlert, iconClassName: "", textClassName: "font-medium text-destructive" },
   expired: { Icon: RotateCw, iconClassName: "", textClassName: "text-muted-foreground" },
 };
