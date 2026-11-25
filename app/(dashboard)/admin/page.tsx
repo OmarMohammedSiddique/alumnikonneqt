@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { RoleForm, VisibilityForm, ReportReviewForm } from "./admin-controls";
 import { REPORT_REASON_LABELS } from "@/lib/profile-privacy";
+import { PageHeading } from "@/components/ui/page-heading";
+import { MentorshipActivity, loadMentorshipActivity } from "./mentorship-activity";
 
 export const metadata = { title: "Admin - AlumniKonneQt" };
 
@@ -51,7 +53,7 @@ export default async function AdminPage() {
   const isStaff = isAdmin || me?.role === "moderator";
   if (!isStaff) redirect("/discover");
 
-  const [{ data: profiles }, { data: reports }, { data: audit }] =
+  const [{ data: profiles }, { data: reports }, { data: audit }, activity] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -74,12 +76,19 @@ export default async function AdminPage() {
         .order("id", { ascending: false })
         .limit(50)
         .returns<AuditRow[]>(),
+      loadMentorshipActivity(supabase),
     ]);
 
   return (
     <div className="grid min-w-0 w-full gap-10 [&>section]:min-w-0">
+      <PageHeading title="Administration">
+        Follow mentorship across the platform, manage members and review reports.
+      </PageHeading>
+
+      <MentorshipActivity data={activity} />
+
       <section>
-        <h1 className="mb-1 text-2xl font-medium">User management</h1>
+        <h2 className="mb-1 text-xl font-medium">User management</h2>
         <p className="mb-4 text-sm text-muted-foreground">
           {isAdmin
             ? "Assign roles and moderate profile visibility."
