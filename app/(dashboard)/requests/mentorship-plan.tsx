@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { useActionState, useEffect, useId, useRef, useState, type ComponentProps, type ReactNode, type Ref } from "react";
 import { Circle, CircleCheck, CircleDot, Clock, Pencil, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import {
 import { mentorshipPlanAction, type PlanActionState, type PlanIntent } from "./plan-actions";
 
 const INITIAL: PlanActionState = {
-  ok: false, error: null, message: null, intent: null, targetId: null, title: "", targetDate: "", nonce: 0,
+  ok: false, error: null, message: null, intent: null, targetId: null, title: "", targetDate: "", field: null, nonce: 0,
 };
 
 type Status = MilestoneStatus | ObjectiveStatus;
@@ -82,17 +82,31 @@ function PlanFields({ intent, targetId }: { intent: PlanIntent; targetId: string
 interface PlanForm {
   dispatch: (formData: FormData) => void;
   pending: boolean;
-  /** What the member typed into a form that failed, so it is not lost. */
-  retained: (intent: PlanIntent, targetId: string) => PlanActionState | null;
+  state: PlanActionState;
 }
+
+/**
+ * The last failed save of one form, kept until that same form saves, so what
+ * was typed and its error survive other actions in the plan.
+ */
+function useRetained(state: PlanActionState, intent: PlanIntent, targetId: string): PlanActionState | null {
+  const matches = state.intent === intent && state.targetId === targetId;
+  const [kept, setKept] = useState<PlanActionState | null>(() => (matches && state.error ? state : null));
+  const [seen, setSeen] = useState(state.nonce);
+  if (state.nonce !== seen) {
+    setSeen(state.nonce);
+    if (matches) setKept(state.ok ? null : state);
+  }
+  return kept;
+}
+
+type PlanField = "title" | "target_date";
+const failedField = (kept: PlanActionState | null): PlanField | null => (kept ? kept.field ?? "title" : null);
 
 /** Remounts a field only when its own form failed, so it shows what was typed. */
 function fieldKey(kept: PlanActionState | null, name: string): string {
   return kept ? `${name}-${kept.nonce}` : name;
 }
-
-/** Forms with their own fields show their errors beside them. */
-const FIELD_INTENTS: PlanIntent[] = ["add_objective", "rename_objective", "add_milestone", "edit_milestone"];
 
 /**
  * A button that stays focusable while a save is pending: aria-disabled and an
@@ -120,18 +134,22 @@ function FieldError({ id, kept }: { id: string; kept: PlanActionState | null }) 
   return <p id={id} role="alert" className="text-xs font-medium text-destructive">{kept.error}</p>;
 }
 
-/** Moves focus back into a field after its save failed and it was remounted. */
-function useFocusOnFailure(kept: PlanActionState | null) {
+/**
+ * Focuses a field when it opens (editors) and again when a save fails because
+ * of that field, after the failed form is remounted.
+ */
+function useFieldFocus(kept: PlanActionState | null, field: PlanField, onMount = false) {
   const ref = useRef<HTMLInputElement>(null);
-  const failure = kept?.nonce;
+  const failure = failedField(kept) === field ? kept?.nonce ?? 0 : 0;
   useEffect(() => {
-    if (failure) ref.current?.focus();
-  }, [failure]);
+    if (onMount || failure) ref.current?.focus();
+  }, [onMount, failure]);
   return ref;
 }
 
-const fieldProps = (kept: PlanActionState | null, errorId: string) =>
-  kept ? { "aria-invalid": true as const, "aria-describedby": errorId } : {};
+/** Marks only the field the error is about as invalid and links the message. */
+const fieldProps = (kept: PlanActionState | null, errorId: string, field: PlanField) =>
+  failedField(kept) === field ? { "aria-invalid": true as const, "aria-describedby": errorId } : {};
 
 interface MentorshipPlanProps {
   connectionId: string;
@@ -168,17 +186,27 @@ export function MentorshipPlan({ connectionId, objectives, partnerName, viewerId
       returnFocusTo.current = null;
     }
   }, [editing]);
+  // Any save whose control has gone (a removal, or an example button or add
+  // form replaced after adding) moves focus to the plan heading.
   useEffect(() => {
-    if (state.ok && (state.intent === "delete_objective" || state.intent === "delete_milestone")) {
+    if (state.ok && (!document.activeElement || document.activeElement === document.body)) {
       headingRef.current?.focus();
     }
-  }, [state.nonce, state.ok, state.intent]);
+  }, [state.nonce, state.ok]);
 
-  const form: PlanForm = {
-    dispatch,
-    pending,
-    retained: (intent, targetId) => (state.error && state.intent === intent && state.targetId === targetId ? state : null),
-  };
+  const form: PlanForm = { dispatch, pending, state };
+
+  // Field errors show beside their form; when that form is gone (closed or at
+  // its limit), the error shows at the foot of the plan instead.
+  const errorHasField = (() => {
+    switch (state.intent) {
+      case "add_objective": return objectives.length < MAX_OBJECTIVES;
+      case "add_milestone": return objectives.some((o) => o.id === state.targetId && o.milestones.length < MAX_MILESTONES);
+      case "rename_objective": return editing === `objective:${state.targetId}`;
+      case "edit_milestone": return editing === `milestone:${state.targetId}`;
+      default: return false;
+    }
+  })();
   const openEditor = (key: string, buttonId: string) => {
     returnFocusTo.current = buttonId;
     setConfirming(null);
@@ -251,7 +279,7 @@ export function MentorshipPlan({ connectionId, objectives, partnerName, viewerId
       <p role="status" className="sr-only">
         {pending ? "Saving the mentorship plan." : state.ok ? state.message : ""}
       </p>
-      {state.error && !pending && !(state.intent && FIELD_INTENTS.includes(state.intent)) && (
+      {state.error && !pending && !errorHasField && (
         <StatusMessage tone="error">{state.error}</StatusMessage>
       )}
     </section>
@@ -288,8 +316,8 @@ function EmptyPlan({ connectionId, partnerName, form }: { connectionId: string; 
 function AddObjectiveForm({ connectionId, form, first }: { connectionId: string; form: PlanForm; first: boolean }) {
   const inputId = useId();
   const errorId = useId();
-  const kept = form.retained("add_objective", connectionId);
-  const ref = useFocusOnFailure(kept);
+  const kept = useRetained(form.state, "add_objective", connectionId);
+  const ref = useFieldFocus(kept, "title");
   return (
     <form action={form.dispatch} className="grid gap-1.5">
       <PlanFields intent="add_objective" targetId={connectionId} />
@@ -302,7 +330,7 @@ function AddObjectiveForm({ connectionId, form, first }: { connectionId: string;
           id={inputId}
           name="title"
           key={fieldKey(kept, "objective")}
-          {...fieldProps(kept, errorId)}
+          {...fieldProps(kept, errorId, "title")}
           defaultValue={kept?.title ?? ""}
           required
           minLength={PLAN_TEXT_MIN}
@@ -516,8 +544,9 @@ function AddMilestoneForm({ objectiveId, form }: { objectiveId: string; form: Pl
   const titleId = useId();
   const dateId = useId();
   const errorId = useId();
-  const kept = form.retained("add_milestone", objectiveId);
-  const ref = useFocusOnFailure(kept);
+  const kept = useRetained(form.state, "add_milestone", objectiveId);
+  const ref = useFieldFocus(kept, "title");
+  const dateRef = useFieldFocus(kept, "target_date");
   return (
     <form action={form.dispatch} className="flex flex-wrap items-end gap-2">
       <PlanFields intent="add_milestone" targetId={objectiveId} />
@@ -528,7 +557,7 @@ function AddMilestoneForm({ objectiveId, form }: { objectiveId: string; form: Pl
           id={titleId}
           name="title"
           key={fieldKey(kept, "title")}
-          {...fieldProps(kept, errorId)}
+          {...fieldProps(kept, errorId, "title")}
           defaultValue={kept?.title ?? ""}
           required
           minLength={PLAN_TEXT_MIN}
@@ -537,7 +566,7 @@ function AddMilestoneForm({ objectiveId, form }: { objectiveId: string; form: Pl
           className="h-9 text-sm"
         />
       </div>
-      <DateField id={dateId} defaultValue={kept?.targetDate ?? ""} resetKey={fieldKey(kept, "date")} />
+      <DateField id={dateId} inputRef={dateRef} defaultValue={kept?.targetDate ?? ""} resetKey={fieldKey(kept, "date")} invalid={fieldProps(kept, errorId, "target_date")} />
       <PlanButton type="submit" variant="outline" size="sm" pending={form.pending}>
         <Plus aria-hidden="true" />
         Add milestone
@@ -547,15 +576,23 @@ function AddMilestoneForm({ objectiveId, form }: { objectiveId: string; form: Pl
   );
 }
 
-function DateField({ id, defaultValue, resetKey }: { id: string; defaultValue: string; resetKey: string }) {
+function DateField({ id, inputRef, defaultValue, resetKey, invalid }: {
+  id: string;
+  inputRef: Ref<HTMLInputElement>;
+  defaultValue: string;
+  resetKey: string;
+  invalid: ReturnType<typeof fieldProps>;
+}) {
   return (
     <div className="grid min-w-0 flex-1 basis-36 gap-1">
       <Label htmlFor={id} className="text-xs font-medium">Target date (optional)</Label>
       <Input
+        ref={inputRef}
         id={id}
         type="date"
         name="target_date"
         key={resetKey}
+        {...invalid}
         defaultValue={defaultValue}
         min="2020-01-01"
         max="2100-12-31"
@@ -592,22 +629,13 @@ function EditorForm({ form, onCancel, children }: { form: PlanForm; onCancel: ()
   );
 }
 
-function useFocusOnMount(kept: PlanActionState | null) {
-  const ref = useRef<HTMLInputElement>(null);
-  const failure = kept?.nonce;
-  useEffect(() => {
-    ref.current?.focus();
-  }, [failure]);
-  return ref;
-}
-
 function TitleEditor({ intent, targetId, label, value, form, onCancel }: {
   intent: PlanIntent; targetId: string; label: string; value: string; form: PlanForm; onCancel: () => void;
 }) {
   const inputId = useId();
   const errorId = useId();
-  const kept = form.retained(intent, targetId);
-  const ref = useFocusOnMount(kept);
+  const kept = useRetained(form.state, intent, targetId);
+  const ref = useFieldFocus(kept, "title", true);
   return (
     <EditorForm form={form} onCancel={onCancel}>
       <PlanFields intent={intent} targetId={targetId} />
@@ -617,7 +645,7 @@ function TitleEditor({ intent, targetId, label, value, form, onCancel }: {
         id={inputId}
         name="title"
         key={fieldKey(kept, "edit")}
-        {...fieldProps(kept, errorId)}
+        {...fieldProps(kept, errorId, "title")}
         defaultValue={kept?.title ?? value}
         required
         minLength={PLAN_TEXT_MIN}
@@ -634,8 +662,9 @@ function MilestoneEditor({ milestone, form, onCancel }: { milestone: PlanMilesto
   const titleId = useId();
   const dateId = useId();
   const errorId = useId();
-  const kept = form.retained("edit_milestone", milestone.id);
-  const ref = useFocusOnMount(kept);
+  const kept = useRetained(form.state, "edit_milestone", milestone.id);
+  const ref = useFieldFocus(kept, "title", true);
+  const dateRef = useFieldFocus(kept, "target_date");
   return (
     <EditorForm form={form} onCancel={onCancel}>
       <PlanFields intent="edit_milestone" targetId={milestone.id} />
@@ -647,7 +676,7 @@ function MilestoneEditor({ milestone, form, onCancel }: { milestone: PlanMilesto
             id={titleId}
             name="title"
             key={fieldKey(kept, "edit")}
-            {...fieldProps(kept, errorId)}
+            {...fieldProps(kept, errorId, "title")}
             defaultValue={kept?.title ?? milestone.title}
             required
             minLength={PLAN_TEXT_MIN}
@@ -655,7 +684,7 @@ function MilestoneEditor({ milestone, form, onCancel }: { milestone: PlanMilesto
             className="h-9 text-sm"
           />
         </div>
-        <DateField id={dateId} defaultValue={kept?.targetDate ?? milestone.target_date ?? ""} resetKey={fieldKey(kept, "edit-date")} />
+        <DateField id={dateId} inputRef={dateRef} defaultValue={kept?.targetDate ?? milestone.target_date ?? ""} resetKey={fieldKey(kept, "edit-date")} invalid={fieldProps(kept, errorId, "target_date")} />
       </div>
       <FieldError id={errorId} kept={kept} />
       <EditorActions pending={form.pending} onCancel={onCancel} />
