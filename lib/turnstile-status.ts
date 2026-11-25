@@ -37,3 +37,13 @@ export function nextTurnstileStatus(current: TurnstileStatus, event: TurnstileEv
       return current;
   }
 }
+
+// A form that carries a token field is held while its token is still on the way:
+// once Supabase enforces the check it would reject the request, and the visitor
+// would have to wait for a new token. When the check has failed nothing is held,
+// so the server can answer instead of the click being swallowed.
+export function shouldHoldSubmit(siteKeyConfigured: boolean, status: TurnstileStatus, tokenField: { value: string } | null): boolean {
+  return siteKeyConfigured && status !== "failed" && tokenField !== null && tokenField.value.length === 0;
+}
+
+export const TURNSTILE_WAITING_MESSAGE = "Your request will be sent as soon as the check finishes.";

@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { preconnect, preload } from "react-dom";
 import { CircleAlert, CircleCheck, LoaderCircle, RotateCw, type LucideIcon } from "lucide-react";
 import { CAPTCHA_FIELD } from "@/lib/turnstile";
 import {
   INITIAL_TURNSTILE_STATUS,
   TURNSTILE_STATUS_MESSAGE,
+  TURNSTILE_WAITING_MESSAGE,
   nextTurnstileStatus,
+  shouldHoldSubmit,
   type TurnstileEvent,
   type TurnstileStatus,
 } from "@/lib/turnstile-status";
@@ -21,6 +24,7 @@ type RenderOptions = {
   "expired-callback"?: () => void;
   "error-callback"?: () => boolean | void;
   "timeout-callback"?: () => void;
+  "retry-interval"?: number;
 };
 
 declare global {
@@ -33,10 +37,16 @@ declare global {
   }
 }
 
-const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+const SCRIPT_SRC = `${TURNSTILE_ORIGIN}/turnstile/v0/api.js?render=explicit`;
+// Cloudflare retries a failed attempt after 8 seconds by default.
+const RETRY_INTERVAL_MS = 2500;
 export const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 let scriptPromise: Promise<void> | null = null;
+// Only one widget on a page holds submissions, so a form is never queued twice.
+// Every auth page has a single widget; a page with two would follow the first one's status.
+let holdOwner: object | null = null;
 
 function loadTurnstile(): Promise<void> {
   if (window.turnstile) return Promise.resolve();
@@ -65,6 +75,55 @@ export function TurnstileWidget({ action, onToken, resetKey }: { action: string;
   useEffect(() => { onTokenRef.current = onToken; });
   const [status, setStatus] = useState<TurnstileStatus>(INITIAL_TURNSTILE_STATUS);
   const report = useCallback((event: TurnstileEvent) => setStatus((current) => nextTurnstileStatus(current, event)), []);
+  // A submission made before the token arrived, sent again once it does.
+  const queued = useRef<{ form: HTMLFormElement; submitter: HTMLElement | null } | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const statusRef = useRef(status);
+  useEffect(() => { statusRef.current = status; });
+
+  if (TURNSTILE_SITE_KEY) {
+    // Start the connection and the script download with the page, not after hydration.
+    preconnect(TURNSTILE_ORIGIN);
+    preload(SCRIPT_SRC, { as: "script" });
+  }
+
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || holdOwner) return;
+    const owner = {};
+    holdOwner = owner;
+    // Capture phase on the document runs before React handles the submission,
+    // so a form without its token is held here instead of being rejected by Supabase.
+    const hold = (event: SubmitEvent) => {
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement)) return;
+      const tokenField = form.querySelector<HTMLInputElement>(`input[name="${CAPTCHA_FIELD}"]`);
+      if (!shouldHoldSubmit(Boolean(TURNSTILE_SITE_KEY), statusRef.current, tokenField)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      queued.current = { form, submitter: event.submitter };
+      setWaiting(true);
+    };
+    document.addEventListener("submit", hold, true);
+    return () => {
+      document.removeEventListener("submit", hold, true);
+      if (holdOwner === owner) holdOwner = null;
+    };
+  }, []);
+
+  // Send the held submission once the token is in the form. This runs after the
+  // parent has re-rendered with the token, so the hidden field is already filled.
+  // If the check fails instead, send it at once so the visitor gets the server's answer
+  // now rather than an unexpected submission later.
+  useEffect(() => {
+    if ((status !== "verified" && status !== "failed") || !queued.current) return;
+    const { form, submitter } = queued.current;
+    queued.current = null;
+    setWaiting(false);
+    if (!form.isConnected) return;
+    const button = submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement ? submitter : null;
+    if (button && button.isConnected && button.form === form) form.requestSubmit(button);
+    else form.requestSubmit();
+  }, [status]);
 
   useEffect(() => {
     if (!TURNSTILE_SITE_KEY) return;
@@ -78,6 +137,7 @@ export function TurnstileWidget({ action, onToken, resetKey }: { action: string;
         size: "flexible",
         // Most visitors pass silently; a checkbox appears only when Cloudflare needs one.
         appearance: "interaction-only",
+        "retry-interval": RETRY_INTERVAL_MS,
         callback: (token) => { onTokenRef.current(token); report({ type: "token", token }); },
         "expired-callback": () => { onTokenRef.current(""); report({ type: "expired" }); },
         "timeout-callback": () => { onTokenRef.current(""); report({ type: "timeout" }); },
@@ -108,6 +168,7 @@ export function TurnstileWidget({ action, onToken, resetKey }: { action: string;
     <div className="grid gap-1">
       <div ref={containerRef} />
       <TurnstileStatusLine status={status} />
+      <p role="status" className="text-xs text-muted-foreground">{waiting ? TURNSTILE_WAITING_MESSAGE : ""}</p>
     </div>
   );
 }
