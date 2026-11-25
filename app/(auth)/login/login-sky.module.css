@@ -8,7 +8,7 @@
 .sky:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#dceef74d,#e8f3f733 50%,#edf5f9b3)}
 .stage{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;justify-items:center;min-height:640px}
 .stage>*{grid-area:1/1;min-width:0}
-.card{width:440px;max-width:100%;padding:var(--card-padding);border-radius:var(--card-radius);background:#ffffffb3;backdrop-filter:blur(24px);box-shadow:0 2px 4px -1px rgb(118 174 215 / 22%),0 12px 24px -8px rgb(81 142 193 / 24%),0 32px 64px -20px rgb(49 104 162 / 26%),0 56px 96px -36px rgb(118 174 215 / 20%)}
+.card{--foreground:#172630;--muted-foreground:#344958;--destructive:#a11924;width:440px;max-width:100%;padding:var(--card-padding);border-radius:var(--card-radius);background:#ffffffb3;backdrop-filter:blur(24px);box-shadow:0 2px 4px -1px rgb(118 174 215 / 22%),0 12px 24px -8px rgb(81 142 193 / 24%),0 32px 64px -20px rgb(49 104 162 / 26%),0 56px 96px -36px rgb(118 174 215 / 20%)}
 .card[hidden],.ticket[hidden]{display:none}
 .windowMark{--window-radius:28px;--window-padding:5px;width:56px;height:72px;border-radius:var(--window-radius);padding:var(--window-padding);background:#f7fafb;box-shadow:0 2px 4px #76aed738,0 4px 8px #3168a224;margin:0 auto 20px}
 .windowView{overflow:hidden;height:100%;border-radius:calc(var(--window-radius) - var(--window-padding));background:#89b9d7;position:relative}
