@@ -200,6 +200,9 @@ export default function AboutDeveloperPage() {
             <Link href="/" className="underline-offset-4 hover:underline">
               Home
             </Link>
+            <Link href="/contact" className="underline-offset-4 hover:underline">
+              Contact
+            </Link>
             <Link href="/privacy" className="underline-offset-4 hover:underline">
               Privacy Policy
             </Link>

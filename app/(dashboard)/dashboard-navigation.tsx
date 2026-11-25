@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
-import { Compass, House, Inbox, LogOut, Menu, ShieldCheck, UserRound } from "lucide-react";
+import { Compass, House, Inbox, LifeBuoy, LogOut, Menu, ShieldCheck, UserRound } from "lucide-react";
 import { signOut } from "@/app/(auth)/actions";
 import { clearAllProfileDrafts } from "@/lib/profile-draft";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,7 @@ export function DashboardNavigation({ name, role }: { name: string; role: string
         <Button type="submit" variant="ghost" className="w-full justify-start px-3"><LogOut aria-hidden="true" />Sign out</Button>
       </form>
       <Link href="/" onClick={closeMenu} className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"><House className="size-4" aria-hidden="true" />Public homepage</Link>
+      <Link href="/contact" onClick={closeMenu} className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"><LifeBuoy className="size-4" aria-hidden="true" />Contact support</Link>
       <div className="pt-3 mt-1 px-3">
         <ThemeToggle showLabel />
       </div>

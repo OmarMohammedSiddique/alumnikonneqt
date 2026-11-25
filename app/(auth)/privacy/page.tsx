@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CookieSettingsTrigger } from "@/components/cookie-settings-trigger";
+import { SUPPORT_EMAIL, supportMailto } from "@/lib/site";
 
 export const metadata = { title: "Prototype privacy information - AlumniKonneQt" };
 
@@ -40,9 +41,14 @@ export default function PrivacyPage() {
       <p>Those processes and the hosted safeguards have not been verified here. There is currently no self-service account deletion or data-rights request workflow. A research use also needs its own clear explanation and appropriate permissions; the proposed association-only sentence would not cover an undisclosed research use.</p>
       <a href="https://kdic.go.ke/sites/default/files/2021-07/TheDataProtectionAct__No24of2019.pdf" className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">Read Kenya’s Data Protection Act, 2019</a>
     </section>
+    <section className="grid gap-2">
+      <h2 className="text-lg font-medium">Questions and contact</h2>
+      <p>Questions about this prototype, or about the information it holds about you, can be sent to <a href={supportMailto("Privacy and data")} className="font-medium text-primary underline underline-offset-4">{SUPPORT_EMAIL}</a>. Messages to that address are passed on by the domain registrar&rsquo;s email forwarding service to the project developer&rsquo;s own mailbox, where the developer reads them. Please do not include passwords or identity documents.</p>
+    </section>
     <div className="flex flex-wrap items-center gap-5 border-t border-border pt-4">
       <Link href="/signup" className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">Back to registration</Link>
       <Link href="/about-developer" className="inline-flex min-h-11 items-center font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground">About Developer</Link>
+      <Link href="/contact" className="inline-flex min-h-11 items-center font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground">Contact</Link>
       <CookieSettingsTrigger className="inline-flex min-h-11 items-center font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground" />
     </div>
   </article>;

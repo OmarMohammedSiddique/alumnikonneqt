@@ -39,6 +39,7 @@ their own matching vectors.
 - Mentee and mentor onboarding with profile-based cold-start matching.
 - Mentorship request, response, and connection workflows.
 - Moderator and administrator controls with audit logging.
+- A public contact and support page (`/contact`) with one project inbox, `support@alumnikonneqt.com`.
 - Database-enforced authorization through PostgreSQL row-level security.
 - Deterministic evaluation tooling for measuring recommendation quality.
 
