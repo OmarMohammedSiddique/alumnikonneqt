@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { ShieldCheck } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CircleAlert, CircleCheck, LoaderCircle, RotateCw, type LucideIcon } from "lucide-react";
 import { CAPTCHA_FIELD } from "@/lib/turnstile";
+import {
+  INITIAL_TURNSTILE_STATUS,
+  TURNSTILE_STATUS_MESSAGE,
+  nextTurnstileStatus,
+  type TurnstileEvent,
+  type TurnstileStatus,
+} from "@/lib/turnstile-status";
 
 type RenderOptions = {
   sitekey: string;
@@ -56,6 +63,8 @@ export function TurnstileWidget({ action, onToken, resetKey }: { action: string;
   const widgetRef = useRef<string | undefined>(undefined);
   const onTokenRef = useRef(onToken);
   useEffect(() => { onTokenRef.current = onToken; });
+  const [status, setStatus] = useState<TurnstileStatus>(INITIAL_TURNSTILE_STATUS);
+  const report = useCallback((event: TurnstileEvent) => setStatus((current) => nextTurnstileStatus(current, event)), []);
 
   useEffect(() => {
     if (!TURNSTILE_SITE_KEY) return;
@@ -69,18 +78,20 @@ export function TurnstileWidget({ action, onToken, resetKey }: { action: string;
         size: "flexible",
         // Most visitors pass silently; a checkbox appears only when Cloudflare needs one.
         appearance: "interaction-only",
-        callback: (token) => onTokenRef.current(token),
-        "expired-callback": () => onTokenRef.current(""),
-        "timeout-callback": () => onTokenRef.current(""),
-        "error-callback": () => { onTokenRef.current(""); },
+        callback: (token) => { onTokenRef.current(token); report({ type: "token", token }); },
+        "expired-callback": () => { onTokenRef.current(""); report({ type: "expired" }); },
+        "timeout-callback": () => { onTokenRef.current(""); report({ type: "timeout" }); },
+        "error-callback": () => { onTokenRef.current(""); report({ type: "error" }); },
       });
-    }).catch(() => onTokenRef.current(""));
+    }).catch(() => { if (cancelled) return; onTokenRef.current(""); report({ type: "load-error" }); });
     return () => {
       cancelled = true;
       if (widgetRef.current && window.turnstile) window.turnstile.remove(widgetRef.current);
       widgetRef.current = undefined;
+      // A re-rendered widget starts a fresh check.
+      report({ type: "reset" });
     };
-  }, [action]);
+  }, [action, report]);
 
   // Tokens are single-use: after every server response, request a new one.
   const firstReset = useRef(true);
@@ -88,17 +99,34 @@ export function TurnstileWidget({ action, onToken, resetKey }: { action: string;
     if (firstReset.current) { firstReset.current = false; return; }
     if (!widgetRef.current || !window.turnstile) return;
     onTokenRef.current("");
+    report({ type: "reset" });
     window.turnstile.reset(widgetRef.current);
-  }, [resetKey]);
+  }, [resetKey, report]);
 
   if (!TURNSTILE_SITE_KEY) return null;
   return (
     <div className="grid gap-1">
       <div ref={containerRef} />
-      <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-        <ShieldCheck className="size-3.5 shrink-0" aria-hidden="true" />
-        Protected from bots by Cloudflare Turnstile
-      </p>
+      <TurnstileStatusLine status={status} />
+    </div>
+  );
+}
+
+const STATUS_ICON: Record<TurnstileStatus, { Icon: LucideIcon; iconClassName: string; textClassName: string }> = {
+  checking: { Icon: LoaderCircle, iconClassName: "motion-safe:animate-spin", textClassName: "text-muted-foreground" },
+  // A green tick reinforces "verified"; at least 3:1 against the card in both themes (5.4:1 light, 10:1 dark).
+  verified: { Icon: CircleCheck, iconClassName: "text-[#1f7a3d] dark:text-[#4ade80]", textClassName: "font-medium text-foreground" },
+  failed: { Icon: CircleAlert, iconClassName: "", textClassName: "font-medium text-destructive" },
+  expired: { Icon: RotateCw, iconClassName: "", textClassName: "text-muted-foreground" },
+};
+
+/** Live, text-first status of the bot check; the icon and colour only reinforce the words. */
+function TurnstileStatusLine({ status }: { status: TurnstileStatus }) {
+  const { Icon, iconClassName, textClassName } = STATUS_ICON[status];
+  return (
+    <div role="status" aria-live="polite" aria-atomic="true" data-turnstile-status={status} className={`inline-flex items-center gap-1.5 text-xs ${textClassName}`}>
+      <Icon className={`size-3.5 shrink-0 ${iconClassName}`} aria-hidden="true" />
+      {TURNSTILE_STATUS_MESSAGE[status]}
     </div>
   );
 }

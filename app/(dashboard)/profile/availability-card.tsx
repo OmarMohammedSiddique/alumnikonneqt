@@ -39,7 +39,7 @@ export function AvailabilityCard({ acceptingRequests }: { acceptingRequests: boo
   };
 
   return (
-    <Card className="mt-8">
+    <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
           {accepting ? (
@@ -56,7 +56,7 @@ export function AvailabilityCard({ acceptingRequests }: { acceptingRequests: boo
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex flex-col justify-between gap-4 rounded-lg border bg-surface p-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col justify-between gap-4 rounded-lg border bg-surface p-4 @md:flex-row @md:items-center">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">New requests</span>
             <Badge tone={accepting ? "success" : "neutral"}>

@@ -25,6 +25,7 @@ none establishes performance on real alumni.
 | `train_scratch_v3.py` | v3 trainer, fixed grid and settings |
 | `select_v3.py` | Grid table and the selection rule (validation only) |
 | `lock_v3.py`, `score_locked_test_v3.py` | Write the lock; score the test split once after the lock is committed |
+| `human_review_v3.py` | Check graded copies of the blind review sheet, measure agreement with the generated grades (and between two reviewers), and rescore the stored test rankings on the reviewed candidates (issue #115) |
 | `plot_learning_curve_v3.py`, `score_legacy_pilot_v3.py` | Data-size learning curve; legacy five-query reference |
 | `export_scratch_v3.py` | ONNX export with tokeniser, manifest and parity fixtures |
 | `models/scratch-v3/` | The exported v3 artefact served by the app. `models/scratch-pilot-v1/` is kept for the record |

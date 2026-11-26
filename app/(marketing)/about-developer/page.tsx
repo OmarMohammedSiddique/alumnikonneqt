@@ -111,7 +111,7 @@ export default function AboutDeveloperPage() {
               </h3>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Developed an automated semantic discovery pipeline utilizing pretrained <strong>MiniLM-L6-v2</strong> sentence transformer
+              Developed an automated semantic discovery pipeline using pretrained <strong>MiniLM-L6-v2</strong> sentence transformer
               embeddings paired with PostgreSQL <strong>pgvector</strong> cosine similarity indexing, allowing mentees to discover mentors
               based on underlying career aspirations and shared competencies rather than simple keyword matches. An experimental encoder
               trained from scratch on synthetic profiles runs alongside it for comparison.
@@ -144,7 +144,7 @@ export default function AboutDeveloperPage() {
               </h3>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Built with privacy-by-design principles: strict data-minimization on registration, granular member profile privacy controls,
+              Built with privacy-by-design principles: strict data minimisation on registration, granular member profile privacy controls,
               member safety blocking &amp; reporting actions, and transparent cookie/storage preference controls.
             </p>
           </div>
@@ -155,12 +155,12 @@ export default function AboutDeveloperPage() {
                 <GraduationCap className="size-5" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-medium text-foreground">
-                Academic Rigor &amp; Evaluation
+                Evaluation
               </h3>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Backed by comprehensive empirical evaluation: baseline heuristic comparisons, statistical ranking benchmarks,
-              automated test suites with over 150 regression specifications, and strict compliance with academic research standards.
+              Matching is compared with keyword and category baselines on synthetic profiles using standard ranking
+              measures, and over 250 automated tests guard the code. A study with real participants is planned and has not yet been run.
             </p>
           </div>
         </section>
@@ -199,6 +199,9 @@ export default function AboutDeveloperPage() {
           <nav aria-label="Developer page footer navigation" className="flex flex-wrap items-center gap-4">
             <Link href="/" className="underline-offset-4 hover:underline">
               Home
+            </Link>
+            <Link href="/contact" className="underline-offset-4 hover:underline">
+              Contact
             </Link>
             <Link href="/privacy" className="underline-offset-4 hover:underline">
               Privacy Policy

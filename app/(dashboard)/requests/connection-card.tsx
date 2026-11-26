@@ -18,6 +18,8 @@ import {
 import { SafetyActionsMenu } from "@/components/safety/safety-actions-menu";
 import { JourneyTracker } from "./journey-tracker";
 import { ContactShareForm, FirstConversationToggle, PartnerContact } from "./journey-controls";
+import { MentorshipPlan } from "./mentorship-plan";
+import { summarisePlan, type PlanObjective } from "@/lib/mentorship-plan";
 
 interface ConnectionCardProps {
   connectionId: string;
@@ -26,6 +28,11 @@ interface ConnectionCardProps {
   myContact: string | null;
   partnerContact: string | null;
   firstConversationAt: string | null;
+  viewerId: string;
+  /** The shared mentorship plan, or null when it could not be loaded (#187). */
+  plan: PlanObjective[] | null;
+  /** Today's Nairobi date (YYYY-MM-DD) from the server. */
+  today: string;
   partner: {
     id?: string;
     fullName: string;
@@ -43,6 +50,9 @@ export function ConnectionCard({
   myContact,
   partnerContact,
   firstConversationAt,
+  viewerId,
+  plan,
+  today,
   partner,
 }: ConnectionCardProps) {
   const [copied, setCopied] = useState(false);
@@ -121,7 +131,7 @@ export function ConnectionCard({
       <CardContent className="grid gap-4 border-t pt-4">
         {!isAvailable ? (
           <p className="text-xs text-muted-foreground" role="status">
-            This member’s profile is currently unavailable. First-conversation actions and contact sharing are paused while the profile is unavailable.
+            This member’s profile is currently unavailable. First-conversation actions, contact sharing and the mentorship plan are paused while the profile is unavailable.
           </p>
         ) : (
           <>
@@ -132,12 +142,26 @@ export function ConnectionCard({
               myContact={myContact}
               partnerContact={partnerContact}
               firstConversationAt={firstConversationAt}
+              plan={plan ? summarisePlan(plan, today) : null}
             />
             <div className="grid gap-3 rounded-md border p-3">
               <PartnerContact name={partner.fullName} contact={partnerContact} />
               <ContactShareForm connectionId={connectionId} partnerName={partner.fullName} myContact={myContact} />
             </div>
             <FirstConversationToggle connectionId={connectionId} heldAt={firstConversationAt} />
+            {plan ? (
+              <MentorshipPlan
+                connectionId={connectionId}
+                objectives={plan}
+                partnerName={partner.fullName}
+                viewerId={viewerId}
+                today={today}
+              />
+            ) : (
+              <p className="rounded-md border p-3 text-xs text-muted-foreground">
+                The mentorship plan could not be loaded just now. Refresh the page to try again.
+              </p>
+            )}
             <div>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="text-sm font-medium">Need help with a first message?</h4>

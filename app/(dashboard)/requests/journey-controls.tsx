@@ -26,7 +26,7 @@ export function PartnerContact({ name, contact }: { name: string; contact: strin
     <p className="text-sm">
       <span className="text-muted-foreground">{name} shared: </span>
       {href ? (
-        <a href={href} target={href.startsWith("https:") ? "_blank" : undefined} rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline break-all">
+        <a href={href} target={href.startsWith("https:") ? "_blank" : undefined} rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary underline underline-offset-4 hover:decoration-2 break-all">
           {contact}
           {href.startsWith("https:") && <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />}
         </a>

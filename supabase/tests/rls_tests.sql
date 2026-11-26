@@ -895,26 +895,421 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
--- TEST 22: the block helper is not an RPC (20261124090000, issue 147).
--- 22a: no block helper is left in the exposed public schema, and the private one
--- is closed to the anonymous role.
+-- TEST 22: mentorship plan objectives and milestones (#187).
+-- Pat (mentee 8) has two connections: with Quinn (mentor 9) and with Nina (3).
+-- Eve (6) is a third member and Moe (4) a moderator; neither is in them.
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+values
+  ('00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'plan-mentee@test.local', '{"role":"mentee","full_name":"Pat Plan"}',   now(), now()),
+  ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'plan-mentor@test.local', '{"role":"mentor","full_name":"Quinn Plan"}', now(), now());
+insert into public.mentorship_requests (id, mentee_id, mentor_id, message, status) values
+  ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000009', 'plan fixture', 'accepted'),
+  ('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000003', 'plan fixture', 'accepted');
+insert into public.connections (id, request_id, mentee_id, mentor_id) values
+  ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000009'),
+  ('00000000-0000-0000-0000-0000000000d2', '00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000003');
+
+-- 22a: the anonymous role holds no privilege on the plan tables and cannot read them.
+do $$
+declare t text;
+begin
+  foreach t in array array['mentorship_objectives', 'mentorship_milestones'] loop
+    if has_table_privilege('anon', 'public.' || t, 'select')
+       or has_table_privilege('anon', 'public.' || t, 'insert')
+       or has_table_privilege('anon', 'public.' || t, 'update')
+       or has_table_privilege('anon', 'public.' || t, 'delete')
+       or has_table_privilege('authenticated', 'public.' || t, 'truncate') then
+      raise exception 'FAIL 22a: unexpected privilege on %', t;
+    end if;
+  end loop;
+end $$;
+set local role anon;
 do $$ begin
-  if to_regprocedure('public.is_blocked_with(uuid)') is not null then
-    raise exception 'FAIL 22a: public.is_blocked_with is still callable through the Data API';
+  begin
+    perform 1 from public.mentorship_objectives;
+    raise exception 'FAIL 22a: anon read mentorship objectives';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Anonymous objective');
+    raise exception 'FAIL 22a: anon added a mentorship objective';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+-- 22b: the mentee adds an objective, the mentor adds a milestone, both read both.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$
+declare v uuid;
+begin
+  insert into public.mentorship_objectives (connection_id, title)
+  values ('00000000-0000-0000-0000-0000000000d1', '   Move into a data engineering role   ')
+  returning id into v;
+  perform set_config('test.objective_id', v::text, true);
+  if (select title from public.mentorship_objectives where id = v) <> 'Move into a data engineering role' then
+    raise exception 'FAIL 22b: objective title was not trimmed';
   end if;
-  if to_regprocedure('private.is_blocked_with(uuid)') is null then
-    raise exception 'FAIL 22a: private.is_blocked_with is missing';
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
+do $$
+declare v uuid;
+begin
+  insert into public.mentorship_milestones (objective_id, connection_id, title, target_date)
+  values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1',
+          'Finish a SQL course', current_date + 10)
+  returning id into v;
+  perform set_config('test.milestone_id', v::text, true);
+  if not exists (select 1 from public.mentorship_objectives where id = current_setting('test.objective_id')::uuid) then
+    raise exception 'FAIL 22b: mentor cannot read the objective';
   end if;
-  if has_schema_privilege('anon', 'private', 'usage')
-     or has_function_privilege('anon', 'private.is_blocked_with(uuid)', 'execute') then
-    raise exception 'FAIL 22a: anon can reach the private block helper';
-  end if;
-  if not has_function_privilege('authenticated', 'private.is_blocked_with(uuid)', 'execute') then
-    raise exception 'FAIL 22a: signed-in policies cannot evaluate the block helper';
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$ begin
+  if not exists (select 1 from public.mentorship_milestones
+                 where id = current_setting('test.milestone_id')::uuid
+                   and completed_at is null and completed_by is null) then
+    raise exception 'FAIL 22b: mentee cannot read the mentor milestone';
   end if;
 end $$;
 
--- 22b: the policies that hid blocked members now evaluate the private helper.
+-- 22c: completing stamps the server time and the member; undoing clears both;
+-- nobody can forge who completed it.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
+do $$
+declare r record;
+begin
+  update public.mentorship_milestones set completed_at = now() - interval '1 year'
+  where id = current_setting('test.milestone_id')::uuid;
+  select completed_at, completed_by into r from public.mentorship_milestones
+  where id = current_setting('test.milestone_id')::uuid;
+  if r.completed_at is null or r.completed_at < now() - interval '1 minute'
+     or r.completed_by is distinct from '00000000-0000-0000-0000-000000000009'::uuid then
+    raise exception 'FAIL 22c: completion was not stamped by the server for the mentor';
+  end if;
+  begin
+    update public.mentorship_milestones set completed_by = '00000000-0000-0000-0000-000000000008'
+    where id = current_setting('test.milestone_id')::uuid;
+    raise exception 'FAIL 22c: member forged who completed the milestone';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$
+declare r record;
+begin
+  -- Marking it done again keeps the original record.
+  update public.mentorship_milestones set completed_at = now()
+  where id = current_setting('test.milestone_id')::uuid;
+  if (select completed_by from public.mentorship_milestones
+      where id = current_setting('test.milestone_id')::uuid)
+     is distinct from '00000000-0000-0000-0000-000000000009'::uuid then
+    raise exception 'FAIL 22c: repeat completion overwrote who completed it';
+  end if;
+  update public.mentorship_milestones set completed_at = null
+  where id = current_setting('test.milestone_id')::uuid;
+  select completed_at, completed_by into r from public.mentorship_milestones
+  where id = current_setting('test.milestone_id')::uuid;
+  if r.completed_at is not null or r.completed_by is not null then
+    raise exception 'FAIL 22c: undo did not clear the completion';
+  end if;
+end $$;
+
+-- 22d: participants edit titles and dates, and delete milestones.
+do $$
+declare affected int; v uuid;
+begin
+  update public.mentorship_objectives set title = 'Move into data engineering'
+  where id = current_setting('test.objective_id')::uuid;
+  get diagnostics affected = row_count;
+  if affected <> 1 then raise exception 'FAIL 22d: mentee could not rename the objective'; end if;
+  update public.mentorship_milestones set title = 'Finish two SQL courses', target_date = null
+  where id = current_setting('test.milestone_id')::uuid;
+  get diagnostics affected = row_count;
+  if affected <> 1 then raise exception 'FAIL 22d: mentee could not edit the milestone'; end if;
+  begin
+    update public.mentorship_objectives set connection_id = '00000000-0000-0000-0000-0000000000d2'
+    where id = current_setting('test.objective_id')::uuid;
+    raise exception 'FAIL 22d: objective moved to another connection';
+  exception when insufficient_privilege then null;
+  end;
+  insert into public.mentorship_milestones (objective_id, connection_id, title)
+  values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Temporary step')
+  returning id into v;
+  delete from public.mentorship_milestones where id = v;
+  get diagnostics affected = row_count;
+  if affected <> 1 then raise exception 'FAIL 22d: mentee could not delete a milestone'; end if;
+end $$;
+
+-- 22e: a third member cannot read, add, change or delete any of it.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000006');
+do $$
+declare affected int;
+begin
+  if exists (select 1 from public.mentorship_objectives)
+     or exists (select 1 from public.mentorship_milestones) then
+    raise exception 'FAIL 22e: third member read the mentorship plan';
+  end if;
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Intruder objective');
+    raise exception 'FAIL 22e: third member added an objective';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Intruder step');
+    raise exception 'FAIL 22e: third member added a milestone';
+  exception when insufficient_privilege then null;
+  end;
+  update public.mentorship_objectives set title = 'Hijacked objective';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22e: third member renamed an objective'; end if;
+  update public.mentorship_milestones set completed_at = now();
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22e: third member completed a milestone'; end if;
+  delete from public.mentorship_milestones;
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22e: third member deleted a milestone'; end if;
+  delete from public.mentorship_objectives;
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22e: third member deleted an objective'; end if;
+end $$;
+
+-- 22f: staff can still see the connection for moderation, but not the plan.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000004');
+do $$
+declare affected int;
+begin
+  if not exists (select 1 from public.connections where id = '00000000-0000-0000-0000-0000000000d1') then
+    raise exception 'FAIL 22f: staff lost moderation read access to connections';
+  end if;
+  if exists (select 1 from public.mentorship_objectives)
+     or exists (select 1 from public.mentorship_milestones) then
+    raise exception 'FAIL 22f: staff read the mentorship plan';
+  end if;
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Staff objective');
+    raise exception 'FAIL 22f: staff added an objective';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Staff step');
+    raise exception 'FAIL 22f: staff added a milestone';
+  exception when insufficient_privilege then null;
+  end;
+  update public.mentorship_objectives set title = 'Staff rename';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22f: staff renamed an objective'; end if;
+  update public.mentorship_milestones set completed_at = now();
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22f: staff completed a milestone'; end if;
+  delete from public.mentorship_milestones;
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22f: staff deleted a milestone'; end if;
+  delete from public.mentorship_objectives;
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22f: staff deleted an objective'; end if;
+end $$;
+
+-- 22g: lengths, hidden characters and dates are enforced.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$
+declare bad text;
+begin
+  foreach bad in array array['ab', '   ab   ', repeat('x', 121), E'Disguised\u202etitle', E'Two\nlines'] loop
+    begin
+      insert into public.mentorship_objectives (connection_id, title)
+      values ('00000000-0000-0000-0000-0000000000d2', bad);
+      raise exception 'FAIL 22g: objective title % was accepted', quote_literal(bad);
+    exception when check_violation then null;
+    end;
+    begin
+      insert into public.mentorship_milestones (objective_id, connection_id, title)
+      values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', bad);
+      raise exception 'FAIL 22g: milestone title % was accepted', quote_literal(bad);
+    exception when check_violation then null;
+    end;
+  end loop;
+  begin
+    update public.mentorship_milestones set target_date = date '1999-12-31'
+    where id = current_setting('test.milestone_id')::uuid;
+    raise exception 'FAIL 22g: out-of-range target date was accepted';
+  exception when check_violation then null;
+  end;
+  -- Exactly 3 and 120 characters are allowed.
+  insert into public.mentorship_objectives (connection_id, title)
+  values ('00000000-0000-0000-0000-0000000000d2', 'abc');
+  insert into public.mentorship_objectives (connection_id, title)
+  values ('00000000-0000-0000-0000-0000000000d2', repeat('y', 120));
+end $$;
+
+-- 22h: a milestone cannot point at an objective from a different connection.
+do $$ begin
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d2', 'Crossed wires');
+    raise exception 'FAIL 22h: milestone attached across connections';
+  exception when foreign_key_violation then null;
+  end;
+end $$;
+
+-- 22i: at most 5 objectives per connection and 8 milestones per objective.
+do $$
+declare i int;
+begin
+  -- d1 holds one objective; four more reach the limit.
+  for i in 2..5 loop
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Objective ' || i);
+  end loop;
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Objective 6');
+    raise exception 'FAIL 22i: sixth objective was accepted';
+  exception when check_violation then
+    if sqlerrm not like '%at most 5 objectives%' then
+      raise exception 'FAIL 22i: unexpected error: %', sqlerrm;
+    end if;
+  end;
+  -- The objective holds one milestone; seven more reach the limit.
+  for i in 2..8 loop
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Step ' || i);
+  end loop;
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Step 9');
+    raise exception 'FAIL 22i: ninth milestone was accepted';
+  exception when check_violation then
+    if sqlerrm not like '%at most 8 milestones%' then
+      raise exception 'FAIL 22i: unexpected error: %', sqlerrm;
+    end if;
+  end;
+end $$;
+
+-- An outsider probing a full plan gets a permission error, not the limit.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000006');
+do $$ begin
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Probe objective');
+    raise exception 'FAIL 22i: outsider insert was not refused';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Probe step');
+    raise exception 'FAIL 22i: outsider milestone insert was not refused';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+-- A participant elsewhere aiming at a full objective from another connection
+-- meets the foreign key, not the limit. Nina (3) is in d2 only.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000003');
+do $$ begin
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d2', 'Probe step');
+    raise exception 'FAIL 22i: cross-connection probe was not refused';
+  exception when foreign_key_violation then null;
+  end;
+end $$;
+
+-- 22j: blocking hides the plan from both people until they unblock.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
+insert into public.blocks (blocker_id, blocked_id)
+values (auth.uid(), '00000000-0000-0000-0000-000000000008');
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$ begin
+  if exists (select 1 from public.mentorship_objectives
+             where connection_id = '00000000-0000-0000-0000-0000000000d1') then
+    raise exception 'FAIL 22j: blocked mentee still reads the plan';
+  end if;
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
+delete from public.blocks where blocker_id = auth.uid() and blocked_id = '00000000-0000-0000-0000-000000000008';
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$ begin
+  if (select count(*) from public.mentorship_objectives
+      where connection_id = '00000000-0000-0000-0000-0000000000d1') <> 5 then
+    raise exception 'FAIL 22j: plan did not return after unblocking';
+  end if;
+end $$;
+
+-- 22k: deleting an objective deletes its milestones; deleting the connection
+-- deletes the whole plan.
+do $$
+declare v uuid;
+begin
+  select id into v from public.mentorship_objectives
+  where connection_id = '00000000-0000-0000-0000-0000000000d1' and title = 'Objective 2';
+  insert into public.mentorship_milestones (objective_id, connection_id, title)
+  values (v, '00000000-0000-0000-0000-0000000000d1', 'Goes with its objective');
+  delete from public.mentorship_objectives where id = v;
+  if exists (select 1 from public.mentorship_milestones where objective_id = v) then
+    raise exception 'FAIL 22k: milestones survived their objective';
+  end if;
+end $$;
+select pg_temp.reset_role();
+delete from public.connections where id = '00000000-0000-0000-0000-0000000000d1';
+do $$ begin
+  if exists (select 1 from public.mentorship_objectives where connection_id = '00000000-0000-0000-0000-0000000000d1')
+     or exists (select 1 from public.mentorship_milestones where connection_id = '00000000-0000-0000-0000-0000000000d1') then
+    raise exception 'FAIL 22k: plan survived the connection';
+  end if;
+  if not exists (select 1 from public.mentorship_objectives where connection_id = '00000000-0000-0000-0000-0000000000d2') then
+    raise exception 'FAIL 22k: deleting one connection removed another plan';
+  end if;
+end $$;
+
+-- 22l: deleting the profile that completed a milestone clears completed_by
+-- (ON DELETE SET NULL) and keeps the completion time. Written as postgres,
+-- since members can never name someone else as the completer.
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated',
+        'authenticated', 'plan-former@test.local', '{"role":"mentee","full_name":"Former Member"}', now(), now());
+do $$
+declare v uuid; r record;
+begin
+  insert into public.mentorship_milestones (objective_id, connection_id, title)
+  select id, connection_id, 'Completed by a former member'
+  from public.mentorship_objectives
+  where connection_id = '00000000-0000-0000-0000-0000000000d2' and title = 'abc'
+  returning id into v;
+  update public.mentorship_milestones set completed_at = now() where id = v;
+  update public.mentorship_milestones set completed_by = '00000000-0000-0000-0000-00000000000a' where id = v;
+  delete from public.profiles where id = '00000000-0000-0000-0000-00000000000a';
+  select completed_at, completed_by into r from public.mentorship_milestones where id = v;
+  if r.completed_by is not null or r.completed_at is null then
+    raise exception 'FAIL 22l: profile deletion did not clear completed_by cleanly';
+  end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- TEST 23: the block helper is not an RPC (20261124090000, issue 147).
+-- 23a: no block helper is left in the exposed public schema, and the private one
+-- is closed to the anonymous role.
+do $$ begin
+  if to_regprocedure('public.is_blocked_with(uuid)') is not null then
+    raise exception 'FAIL 23a: public.is_blocked_with is still callable through the Data API';
+  end if;
+  if to_regprocedure('private.is_blocked_with(uuid)') is null then
+    raise exception 'FAIL 23a: private.is_blocked_with is missing';
+  end if;
+  if has_schema_privilege('anon', 'private', 'usage')
+     or has_function_privilege('anon', 'private.is_blocked_with(uuid)', 'execute') then
+    raise exception 'FAIL 23a: anon can reach the private block helper';
+  end if;
+  if not has_function_privilege('authenticated', 'private.is_blocked_with(uuid)', 'execute') then
+    raise exception 'FAIL 23a: signed-in policies cannot evaluate the block helper';
+  end if;
+end $$;
+
+-- 23b: the policies that hid blocked members now evaluate the private helper.
 do $$
 declare missing text;
 begin
@@ -927,27 +1322,27 @@ begin
         || coalesce(pg_get_expr(p.polwithcheck, p.polrelid), '')
         not like '%private.is_blocked_with%';
   if missing is not null then
-    raise exception 'FAIL 22b: policies no longer use the private block helper: %', missing;
+    raise exception 'FAIL 23b: policies no longer use the private block helper: %', missing;
   end if;
   if (select count(*) from pg_policy
       where polname in ('profiles: read visible, own, or staff',
                         'requests: insert as mentee',
                         'profile photos: members read')) <> 3 then
-    raise exception 'FAIL 22b: a block-aware policy is missing';
+    raise exception 'FAIL 23b: a block-aware policy is missing';
   end if;
 end $$;
 
--- 22c: blocking still hides both members from each other after the move.
+-- 23c: blocking still hides both members from each other after the move.
 update public.profiles set is_visible = true, member_visible = true, staff_hidden = false
 where id = '00000000-0000-0000-0000-000000000002';
 select pg_temp.impersonate('00000000-0000-0000-0000-000000000006');
 do $$ begin
   if not exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-000000000002') then
-    raise exception 'FAIL 22c: member cannot read a visible mentor before any block';
+    raise exception 'FAIL 23c: member cannot read a visible mentor before any block';
   end if;
   if not exists (select 1 from public.search_mentors('Max', 10)
                  where id = '00000000-0000-0000-0000-000000000002') then
-    raise exception 'FAIL 22c: search_mentors misses a visible mentor before any block';
+    raise exception 'FAIL 23c: search_mentors misses a visible mentor before any block';
   end if;
 end $$;
 select pg_temp.reset_role();
@@ -956,16 +1351,16 @@ values ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000
 select pg_temp.impersonate('00000000-0000-0000-0000-000000000006');
 do $$ begin
   if exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-000000000002') then
-    raise exception 'FAIL 22c: blocked member still reads the blocker profile';
+    raise exception 'FAIL 23c: blocked member still reads the blocker profile';
   end if;
   if exists (select 1 from public.search_mentors('Max', 10)
              where id = '00000000-0000-0000-0000-000000000002') then
-    raise exception 'FAIL 22c: blocker returned by search_mentors';
+    raise exception 'FAIL 23c: blocker returned by search_mentors';
   end if;
   begin
     insert into public.mentorship_requests (mentee_id, mentor_id, message)
     values (auth.uid(), '00000000-0000-0000-0000-000000000002', 'blocked request');
-    raise exception 'FAIL 22c: blocked member sent a request to the blocker';
+    raise exception 'FAIL 23c: blocked member sent a request to the blocker';
   exception when others then
     if sqlerrm like 'FAIL%' then raise; end if;
   end;
@@ -973,7 +1368,7 @@ end $$;
 select pg_temp.impersonate('00000000-0000-0000-0000-000000000002');
 do $$ begin
   if exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-000000000006') then
-    raise exception 'FAIL 22c: blocker still reads the blocked member profile';
+    raise exception 'FAIL 23c: blocker still reads the blocked member profile';
   end if;
 end $$;
 select pg_temp.reset_role();

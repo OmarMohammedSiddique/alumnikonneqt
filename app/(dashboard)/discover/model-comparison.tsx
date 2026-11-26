@@ -69,13 +69,17 @@ export function ModelComparison({ view = "list", canRequest, requestMap, onReque
         <div className="max-w-2xl space-y-2">
           <h2 className="text-xl font-medium">Two models, one mentor pool</h2>
           <p className="text-sm text-muted-foreground">
-            Both models rank mentors using your saved headline, bio, skills, and industry.
-            Your trained model (version 3) is experimental. It was trained from random weights on synthetic
-            profiles with generated labels that no person has reviewed.
+            Both models read the same saved profile (headline, bio, skills and industry) and rank the same mentors.
+            Each one turns a profile into a list of numbers and ranks mentors by how close their numbers are to yours.
           </p>
           <p className="text-sm text-muted-foreground">
-            Scores show similarity within each model, not accuracy or a probability of mentorship success.
-            Compare the rankings rather than score sizes between models.
+            MiniLM is a ready-made language model, trained by other researchers on general text and used here as it is.
+            Your trained model (version 3) is a small, experimental model the developer trained from scratch on fictional profiles.
+            A computer rule marked which fictional mentors suit each mentee, and people have checked only a small sample of those marks.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            A score shows how close a mentor is to you within one model. It does not measure accuracy, and it is not the chance or a promise of a good mentorship.
+            Compare the order of each list, not the scores between models.
           </p>
         </div>
         <Button type="button" variant="outline" onClick={refresh} disabled={loading}>
@@ -91,7 +95,7 @@ export function ModelComparison({ view = "list", canRequest, requestMap, onReque
           {result.candidateCount === 0 ? "No visible mentors are available to compare yet." :
             `Showing up to five results per model from the same ${result.candidateCount} mentors.`}
           {result.truncated && " This preview uses the first 50 visible mentors ordered by ID, not the entire community."}
-          {" "}Timings include inference and any model startup for this request; they are not accuracy measurements.
+          {" "}Times show how long each model took for this request, including any start-up. They do not measure accuracy.
         </p>
         <div className={view === "passes" ? "grid min-w-0 gap-10" : "grid min-w-0 gap-8 xl:grid-cols-2"}>
           {result.models.map((model) => <section key={model.id} aria-label={`${model.name} results`} className="min-w-0 space-y-4">

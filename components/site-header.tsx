@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { Brand } from "@/components/brand";
+import { Brand, type BrandProps } from "@/components/brand";
 import { HomeLogoLink } from "@/components/home-logo-link";
 import { NairobiClock } from "@/components/nairobi-clock";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
@@ -17,11 +17,14 @@ const SECTIONS = [
 export async function SiteHeader({
   sticky = false,
   flush = false,
+  tone = "auto",
   className = "",
 }: {
   sticky?: boolean;
   /** Fill the parent instead of using the page gutter. */
   flush?: boolean;
+  /** Logo variant, for pages whose surface does not follow the site theme. */
+  tone?: BrandProps["tone"];
   className?: string;
 }) {
   // Cached per request, so pages that also read the user do not ask twice.
@@ -32,7 +35,7 @@ export async function SiteHeader({
       <div className={`${styles.bar} ${flush ? styles.flush : ""}`}>
         <div className={styles.brand}>
           <HomeLogoLink className={styles.logo}>
-            <Brand imageClassName="h-10 sm:h-11" />
+            <Brand tone={tone} imageClassName="h-10 sm:h-11" />
           </HomeLogoLink>
           <span className={styles.tagline} aria-hidden="true">Alumni mentorship network</span>
         </div>

@@ -18,7 +18,7 @@ export function ProfileSetup({ isMentor, status, saving, unsaved }: {
   ];
 
   return (
-    <section id="profile-setup" aria-labelledby="profile-setup-title" className="border bg-card p-5 sm:p-6">
+    <section id="profile-setup" aria-labelledby="profile-setup-title" className="rounded-3xl border bg-card p-5 shadow-(--workspace-card-shadow) sm:p-6">
       <h2 id="profile-setup-title" className="text-lg font-medium tracking-tight">
         {ready ? "Your match profile is ready" : isMentor ? "Build your Mentor profile" : "Find your first Mentor"}
       </h2>
