@@ -60,7 +60,7 @@ export function RoleForm({ userId, name, role }: { userId: string; name: string;
           disabled={pending}
           aria-label={`Role for ${name}`}
           aria-describedby={showFeedback ? feedbackId : undefined}
-          className="h-7 rounded-md border bg-transparent px-1.5 text-sm"
+          className="h-11 rounded-lg border border-input bg-background px-2 text-sm"
         >
           {PROFILE_ROLES.map((r) => (
             <option key={r} value={r}>

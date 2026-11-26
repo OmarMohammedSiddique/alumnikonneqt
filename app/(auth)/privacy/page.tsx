@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CookieSettingsTrigger } from "@/components/cookie-settings-trigger";
+import { SUPPORT_EMAIL, supportMailto } from "@/lib/site";
 
 export const metadata = { title: "Prototype privacy information - AlumniKonneQt" };
 
@@ -13,6 +14,7 @@ export default function PrivacyPage() {
       <p>If you choose Google sign-in, Google and Supabase handle authentication and provide basic account identity details. The app requests only identity, email and profile scopes; it does not request Gmail or Google Drive access.</p>
       <p>Sign-up, sign-in and password-reset forms use Cloudflare Turnstile to block automated abuse. Turnstile evaluates browser and connection signals, such as your IP address, to confirm that a person is submitting the form. It is not used for advertising or cross-site tracking.</p>
       <p>If you choose to fill your profile from a CV, the PDF or Word file is sent to the AlumniKonneQt server, read in memory to suggest profile details, and then discarded. The file is not stored, not added to your profile and not sent to any other service. Only the suggestions you accept and save become part of your profile.</p>
+      <p>Once a mentorship request is accepted, the objectives and milestones you and the other person add to your mentorship plan are stored with your connection, including target dates and who marked each milestone done and when. Only the two of you can see or change them; moderators and administrators cannot. They are hidden while either of you has blocked the other, and deleted if the connection is removed.</p>
       <p>When something fails, a technical error report (the error message, where in the code it happened, the page path and browser type) is sent to Sentry so the fault can be fixed. Cookies, form contents, request headers and query strings are removed first, and email addresses in error text are masked. Your IP address is not stored, but Sentry records an approximate location (city and country) worked out from the connection when a report arrives. Errors on the server are always reported; errors in your browser are reported only if you accept analytics below.</p>
       <p>Please use test details for prototype evaluation. Do not enter national ID, passport or staff identification numbers in your profile, biography, skills or other free-text fields, or upload identity-document photographs.</p>
     </section>
@@ -40,9 +42,14 @@ export default function PrivacyPage() {
       <p>Those processes and the hosted safeguards have not been verified here. There is currently no self-service account deletion or data-rights request workflow. A research use also needs its own clear explanation and appropriate permissions; the proposed association-only sentence would not cover an undisclosed research use.</p>
       <a href="https://kdic.go.ke/sites/default/files/2021-07/TheDataProtectionAct__No24of2019.pdf" className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">Read Kenya’s Data Protection Act, 2019</a>
     </section>
+    <section className="grid gap-2">
+      <h2 className="text-lg font-medium">Questions and contact</h2>
+      <p>Questions about this prototype, or about the information it holds about you, can be sent to <a href={supportMailto("Privacy and data")} className="font-medium text-primary underline underline-offset-4">{SUPPORT_EMAIL}</a>. Messages to that address are passed on by the domain registrar&rsquo;s email forwarding service to the project developer&rsquo;s own mailbox, where the developer reads them. Please do not include passwords or identity documents.</p>
+    </section>
     <div className="flex flex-wrap items-center gap-5 border-t border-border pt-4">
       <Link href="/signup" className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">Back to registration</Link>
       <Link href="/about-developer" className="inline-flex min-h-11 items-center font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground">About Developer</Link>
+      <Link href="/contact" className="inline-flex min-h-11 items-center font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground">Contact</Link>
       <CookieSettingsTrigger className="inline-flex min-h-11 items-center font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground" />
     </div>
   </article>;

@@ -4,6 +4,7 @@ import { RequestActions } from "./request-actions";
 import { ConnectionCard } from "./connection-card";
 import { JourneyTracker } from "./journey-tracker";
 import type { RequestStatus } from "@/lib/connection-journey";
+import { todayInPlanZone, type PlanMilestone, type PlanObjective } from "@/lib/mentorship-plan";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,20 @@ interface ConnectionRow {
   mentee: ConnectionProfile | null;
   mentor: ConnectionProfile | null;
 }
+
+interface ObjectiveRow {
+  id: string;
+  connection_id: string;
+  title: string;
+  created_at: string;
+}
+
+interface MilestoneRow extends PlanMilestone {
+  objective_id: string;
+  created_at: string;
+}
+
+const byCreated = (a: { created_at: string }, b: { created_at: string }) => a.created_at.localeCompare(b.created_at);
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "Pending",
@@ -96,19 +111,51 @@ export default async function RequestsPage() {
   // Contact details shared on these connections. RLS returns only rows for
   // connections the member belongs to (never staff-wide), and hides the other
   // person's row while either has blocked the other.
+  // Mentorship plans (#187) follow the same rule: participants only, never staff-wide.
   const connectionIds = (connections ?? []).map((c) => c.id);
-  const { data: contacts, error: contactsError } = connectionIds.length
-    ? await supabase
-        .from("connection_contacts")
-        .select("connection_id, user_id, contact")
-        .in("connection_id", connectionIds)
-        .returns<{ connection_id: string; user_id: string; contact: string }[]>()
-    : { data: [], error: null };
+  const [
+    { data: contacts, error: contactsError },
+    { data: objectiveRows, error: objectivesError },
+    { data: milestoneRows, error: milestonesError },
+  ] = connectionIds.length
+    ? await Promise.all([
+        supabase
+          .from("connection_contacts")
+          .select("connection_id, user_id, contact")
+          .in("connection_id", connectionIds)
+          .returns<{ connection_id: string; user_id: string; contact: string }[]>(),
+        supabase
+          .from("mentorship_objectives")
+          .select("id, connection_id, title, created_at")
+          .in("connection_id", connectionIds)
+          .returns<ObjectiveRow[]>(),
+        supabase
+          .from("mentorship_milestones")
+          .select("id, objective_id, title, target_date, completed_at, completed_by, created_at")
+          .in("connection_id", connectionIds)
+          .returns<MilestoneRow[]>(),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }];
   const contactFor = (connectionId: string, userId: string) =>
     contacts?.find((row) => row.connection_id === connectionId && row.user_id === userId)?.contact ?? null;
+  const planError = Boolean(objectivesError || milestonesError);
+  const planFor = (connectionId: string): PlanObjective[] | null =>
+    planError
+      ? null
+      : (objectiveRows ?? [])
+          .filter((row) => row.connection_id === connectionId)
+          .sort(byCreated)
+          .map((row) => ({
+            id: row.id,
+            title: row.title,
+            milestones: (milestoneRows ?? [])
+              .filter((milestone) => milestone.objective_id === row.id)
+              .sort(byCreated),
+          }));
+  const today = todayInPlanZone();
 
   return (
-    <div className="grid max-w-4xl gap-10">
+    <div className="grid gap-10">
       <section>
         <PageHeading title={isMentor ? "Incoming requests" : "Your requests"}>
           {isMentor ? "Review introductions from Mentees seeking your guidance." : "Keep track of the introductions you have made and their responses."}
@@ -119,7 +166,7 @@ export default async function RequestsPage() {
             {isMentor ? "When a Mentee requests your guidance, their introduction will appear here." : "Explore the community and send a mentorship request when you find a relevant connection."}
           </EmptyState>
         )}
-        <div className="grid gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] gap-3">
           {requests?.map((req) => {
             const isIncoming = req.mentor_id === user.id;
             const counterpartId = isIncoming ? req.mentee_id : req.mentor_id;
@@ -153,7 +200,7 @@ export default async function RequestsPage() {
                   {req.status === "accepted" ? (
                     <p className="text-sm text-muted-foreground">
                       Accepted. Your connection with {counterpartName} and its next steps are under{" "}
-                      <a href="#connections" className="font-medium text-primary underline-offset-4 hover:underline">Your connections</a>.
+                      <a href="#connections" className="font-medium text-primary underline underline-offset-4 hover:decoration-2">Your connections</a>.
                     </p>
                   ) : (
                     <JourneyTracker
@@ -187,7 +234,7 @@ export default async function RequestsPage() {
             Shared contact details could not be loaded just now. Refresh the page to try again.
           </StatusMessage>
         )}
-        <div className="grid gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] gap-4">
           {connections?.map((c) => {
             const isConnectionMentor = c.mentor_id === user.id;
             const partner = isConnectionMentor ? c.mentee : c.mentor;
@@ -201,6 +248,9 @@ export default async function RequestsPage() {
                 myContact={contactFor(c.id, user.id)}
                 partnerContact={contactFor(c.id, partnerId)}
                 firstConversationAt={c.first_conversation_at}
+                viewerId={user.id}
+                plan={planFor(c.id)}
+                today={today}
                 partner={{
                   id: partnerId,
                   fullName: partner?.full_name ?? "Unavailable member",

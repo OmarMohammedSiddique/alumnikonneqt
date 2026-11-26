@@ -895,24 +895,419 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
--- TEST 22: fictional demo accounts and real members are kept apart (#109).
+-- TEST 22: mentorship plan objectives and milestones (#187).
+-- Pat (mentee 8) has two connections: with Quinn (mentor 9) and with Nina (3).
+-- Eve (6) is a third member and Moe (4) a moderator; neither is in them.
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+values
+  ('00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'plan-mentee@test.local', '{"role":"mentee","full_name":"Pat Plan"}',   now(), now()),
+  ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'plan-mentor@test.local', '{"role":"mentor","full_name":"Quinn Plan"}', now(), now());
+insert into public.mentorship_requests (id, mentee_id, mentor_id, message, status) values
+  ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000009', 'plan fixture', 'accepted'),
+  ('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000003', 'plan fixture', 'accepted');
+insert into public.connections (id, request_id, mentee_id, mentor_id) values
+  ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000009'),
+  ('00000000-0000-0000-0000-0000000000d2', '00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000003');
+
+-- 22a: the anonymous role holds no privilege on the plan tables and cannot read them.
+do $$
+declare t text;
+begin
+  foreach t in array array['mentorship_objectives', 'mentorship_milestones'] loop
+    if has_table_privilege('anon', 'public.' || t, 'select')
+       or has_table_privilege('anon', 'public.' || t, 'insert')
+       or has_table_privilege('anon', 'public.' || t, 'update')
+       or has_table_privilege('anon', 'public.' || t, 'delete')
+       or has_table_privilege('authenticated', 'public.' || t, 'truncate') then
+      raise exception 'FAIL 22a: unexpected privilege on %', t;
+    end if;
+  end loop;
+end $$;
+set local role anon;
+do $$ begin
+  begin
+    perform 1 from public.mentorship_objectives;
+    raise exception 'FAIL 22a: anon read mentorship objectives';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Anonymous objective');
+    raise exception 'FAIL 22a: anon added a mentorship objective';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+-- 22b: the mentee adds an objective, the mentor adds a milestone, both read both.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$
+declare v uuid;
+begin
+  insert into public.mentorship_objectives (connection_id, title)
+  values ('00000000-0000-0000-0000-0000000000d1', '   Move into a data engineering role   ')
+  returning id into v;
+  perform set_config('test.objective_id', v::text, true);
+  if (select title from public.mentorship_objectives where id = v) <> 'Move into a data engineering role' then
+    raise exception 'FAIL 22b: objective title was not trimmed';
+  end if;
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
+do $$
+declare v uuid;
+begin
+  insert into public.mentorship_milestones (objective_id, connection_id, title, target_date)
+  values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1',
+          'Finish a SQL course', current_date + 10)
+  returning id into v;
+  perform set_config('test.milestone_id', v::text, true);
+  if not exists (select 1 from public.mentorship_objectives where id = current_setting('test.objective_id')::uuid) then
+    raise exception 'FAIL 22b: mentor cannot read the objective';
+  end if;
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$ begin
+  if not exists (select 1 from public.mentorship_milestones
+                 where id = current_setting('test.milestone_id')::uuid
+                   and completed_at is null and completed_by is null) then
+    raise exception 'FAIL 22b: mentee cannot read the mentor milestone';
+  end if;
+end $$;
+
+-- 22c: completing stamps the server time and the member; undoing clears both;
+-- nobody can forge who completed it.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
+do $$
+declare r record;
+begin
+  update public.mentorship_milestones set completed_at = now() - interval '1 year'
+  where id = current_setting('test.milestone_id')::uuid;
+  select completed_at, completed_by into r from public.mentorship_milestones
+  where id = current_setting('test.milestone_id')::uuid;
+  if r.completed_at is null or r.completed_at < now() - interval '1 minute'
+     or r.completed_by is distinct from '00000000-0000-0000-0000-000000000009'::uuid then
+    raise exception 'FAIL 22c: completion was not stamped by the server for the mentor';
+  end if;
+  begin
+    update public.mentorship_milestones set completed_by = '00000000-0000-0000-0000-000000000008'
+    where id = current_setting('test.milestone_id')::uuid;
+    raise exception 'FAIL 22c: member forged who completed the milestone';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$
+declare r record;
+begin
+  -- Marking it done again keeps the original record.
+  update public.mentorship_milestones set completed_at = now()
+  where id = current_setting('test.milestone_id')::uuid;
+  if (select completed_by from public.mentorship_milestones
+      where id = current_setting('test.milestone_id')::uuid)
+     is distinct from '00000000-0000-0000-0000-000000000009'::uuid then
+    raise exception 'FAIL 22c: repeat completion overwrote who completed it';
+  end if;
+  update public.mentorship_milestones set completed_at = null
+  where id = current_setting('test.milestone_id')::uuid;
+  select completed_at, completed_by into r from public.mentorship_milestones
+  where id = current_setting('test.milestone_id')::uuid;
+  if r.completed_at is not null or r.completed_by is not null then
+    raise exception 'FAIL 22c: undo did not clear the completion';
+  end if;
+end $$;
+
+-- 22d: participants edit titles and dates, and delete milestones.
+do $$
+declare affected int; v uuid;
+begin
+  update public.mentorship_objectives set title = 'Move into data engineering'
+  where id = current_setting('test.objective_id')::uuid;
+  get diagnostics affected = row_count;
+  if affected <> 1 then raise exception 'FAIL 22d: mentee could not rename the objective'; end if;
+  update public.mentorship_milestones set title = 'Finish two SQL courses', target_date = null
+  where id = current_setting('test.milestone_id')::uuid;
+  get diagnostics affected = row_count;
+  if affected <> 1 then raise exception 'FAIL 22d: mentee could not edit the milestone'; end if;
+  begin
+    update public.mentorship_objectives set connection_id = '00000000-0000-0000-0000-0000000000d2'
+    where id = current_setting('test.objective_id')::uuid;
+    raise exception 'FAIL 22d: objective moved to another connection';
+  exception when insufficient_privilege then null;
+  end;
+  insert into public.mentorship_milestones (objective_id, connection_id, title)
+  values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Temporary step')
+  returning id into v;
+  delete from public.mentorship_milestones where id = v;
+  get diagnostics affected = row_count;
+  if affected <> 1 then raise exception 'FAIL 22d: mentee could not delete a milestone'; end if;
+end $$;
+
+-- 22e: a third member cannot read, add, change or delete any of it.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000006');
+do $$
+declare affected int;
+begin
+  if exists (select 1 from public.mentorship_objectives)
+     or exists (select 1 from public.mentorship_milestones) then
+    raise exception 'FAIL 22e: third member read the mentorship plan';
+  end if;
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Intruder objective');
+    raise exception 'FAIL 22e: third member added an objective';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Intruder step');
+    raise exception 'FAIL 22e: third member added a milestone';
+  exception when insufficient_privilege then null;
+  end;
+  update public.mentorship_objectives set title = 'Hijacked objective';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22e: third member renamed an objective'; end if;
+  update public.mentorship_milestones set completed_at = now();
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22e: third member completed a milestone'; end if;
+  delete from public.mentorship_milestones;
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22e: third member deleted a milestone'; end if;
+  delete from public.mentorship_objectives;
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22e: third member deleted an objective'; end if;
+end $$;
+
+-- 22f: staff can still see the connection for moderation, but not the plan.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000004');
+do $$
+declare affected int;
+begin
+  if not exists (select 1 from public.connections where id = '00000000-0000-0000-0000-0000000000d1') then
+    raise exception 'FAIL 22f: staff lost moderation read access to connections';
+  end if;
+  if exists (select 1 from public.mentorship_objectives)
+     or exists (select 1 from public.mentorship_milestones) then
+    raise exception 'FAIL 22f: staff read the mentorship plan';
+  end if;
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Staff objective');
+    raise exception 'FAIL 22f: staff added an objective';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Staff step');
+    raise exception 'FAIL 22f: staff added a milestone';
+  exception when insufficient_privilege then null;
+  end;
+  update public.mentorship_objectives set title = 'Staff rename';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22f: staff renamed an objective'; end if;
+  update public.mentorship_milestones set completed_at = now();
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22f: staff completed a milestone'; end if;
+  delete from public.mentorship_milestones;
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22f: staff deleted a milestone'; end if;
+  delete from public.mentorship_objectives;
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'FAIL 22f: staff deleted an objective'; end if;
+end $$;
+
+-- 22g: lengths, hidden characters and dates are enforced.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$
+declare bad text;
+begin
+  foreach bad in array array['ab', '   ab   ', repeat('x', 121), E'Disguised\u202etitle', E'Two\nlines'] loop
+    begin
+      insert into public.mentorship_objectives (connection_id, title)
+      values ('00000000-0000-0000-0000-0000000000d2', bad);
+      raise exception 'FAIL 22g: objective title % was accepted', quote_literal(bad);
+    exception when check_violation then null;
+    end;
+    begin
+      insert into public.mentorship_milestones (objective_id, connection_id, title)
+      values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', bad);
+      raise exception 'FAIL 22g: milestone title % was accepted', quote_literal(bad);
+    exception when check_violation then null;
+    end;
+  end loop;
+  begin
+    update public.mentorship_milestones set target_date = date '1999-12-31'
+    where id = current_setting('test.milestone_id')::uuid;
+    raise exception 'FAIL 22g: out-of-range target date was accepted';
+  exception when check_violation then null;
+  end;
+  -- Exactly 3 and 120 characters are allowed.
+  insert into public.mentorship_objectives (connection_id, title)
+  values ('00000000-0000-0000-0000-0000000000d2', 'abc');
+  insert into public.mentorship_objectives (connection_id, title)
+  values ('00000000-0000-0000-0000-0000000000d2', repeat('y', 120));
+end $$;
+
+-- 22h: a milestone cannot point at an objective from a different connection.
+do $$ begin
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d2', 'Crossed wires');
+    raise exception 'FAIL 22h: milestone attached across connections';
+  exception when foreign_key_violation then null;
+  end;
+end $$;
+
+-- 22i: at most 5 objectives per connection and 8 milestones per objective.
+do $$
+declare i int;
+begin
+  -- d1 holds one objective; four more reach the limit.
+  for i in 2..5 loop
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Objective ' || i);
+  end loop;
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Objective 6');
+    raise exception 'FAIL 22i: sixth objective was accepted';
+  exception when check_violation then
+    if sqlerrm not like '%at most 5 objectives%' then
+      raise exception 'FAIL 22i: unexpected error: %', sqlerrm;
+    end if;
+  end;
+  -- The objective holds one milestone; seven more reach the limit.
+  for i in 2..8 loop
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Step ' || i);
+  end loop;
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Step 9');
+    raise exception 'FAIL 22i: ninth milestone was accepted';
+  exception when check_violation then
+    if sqlerrm not like '%at most 8 milestones%' then
+      raise exception 'FAIL 22i: unexpected error: %', sqlerrm;
+    end if;
+  end;
+end $$;
+
+-- An outsider probing a full plan gets a permission error, not the limit.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000006');
+do $$ begin
+  begin
+    insert into public.mentorship_objectives (connection_id, title)
+    values ('00000000-0000-0000-0000-0000000000d1', 'Probe objective');
+    raise exception 'FAIL 22i: outsider insert was not refused';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d1', 'Probe step');
+    raise exception 'FAIL 22i: outsider milestone insert was not refused';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+-- A participant elsewhere aiming at a full objective from another connection
+-- meets the foreign key, not the limit. Nina (3) is in d2 only.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000003');
+do $$ begin
+  begin
+    insert into public.mentorship_milestones (objective_id, connection_id, title)
+    values (current_setting('test.objective_id')::uuid, '00000000-0000-0000-0000-0000000000d2', 'Probe step');
+    raise exception 'FAIL 22i: cross-connection probe was not refused';
+  exception when foreign_key_violation then null;
+  end;
+end $$;
+
+-- 22j: blocking hides the plan from both people until they unblock.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
+insert into public.blocks (blocker_id, blocked_id)
+values (auth.uid(), '00000000-0000-0000-0000-000000000008');
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$ begin
+  if exists (select 1 from public.mentorship_objectives
+             where connection_id = '00000000-0000-0000-0000-0000000000d1') then
+    raise exception 'FAIL 22j: blocked mentee still reads the plan';
+  end if;
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
+delete from public.blocks where blocker_id = auth.uid() and blocked_id = '00000000-0000-0000-0000-000000000008';
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+do $$ begin
+  if (select count(*) from public.mentorship_objectives
+      where connection_id = '00000000-0000-0000-0000-0000000000d1') <> 5 then
+    raise exception 'FAIL 22j: plan did not return after unblocking';
+  end if;
+end $$;
+
+-- 22k: deleting an objective deletes its milestones; deleting the connection
+-- deletes the whole plan.
+do $$
+declare v uuid;
+begin
+  select id into v from public.mentorship_objectives
+  where connection_id = '00000000-0000-0000-0000-0000000000d1' and title = 'Objective 2';
+  insert into public.mentorship_milestones (objective_id, connection_id, title)
+  values (v, '00000000-0000-0000-0000-0000000000d1', 'Goes with its objective');
+  delete from public.mentorship_objectives where id = v;
+  if exists (select 1 from public.mentorship_milestones where objective_id = v) then
+    raise exception 'FAIL 22k: milestones survived their objective';
+  end if;
+end $$;
+select pg_temp.reset_role();
+delete from public.connections where id = '00000000-0000-0000-0000-0000000000d1';
+do $$ begin
+  if exists (select 1 from public.mentorship_objectives where connection_id = '00000000-0000-0000-0000-0000000000d1')
+     or exists (select 1 from public.mentorship_milestones where connection_id = '00000000-0000-0000-0000-0000000000d1') then
+    raise exception 'FAIL 22k: plan survived the connection';
+  end if;
+  if not exists (select 1 from public.mentorship_objectives where connection_id = '00000000-0000-0000-0000-0000000000d2') then
+    raise exception 'FAIL 22k: deleting one connection removed another plan';
+  end if;
+end $$;
+
+-- 22l: deleting the profile that completed a milestone clears completed_by
+-- (ON DELETE SET NULL) and keeps the completion time. Written as postgres,
+-- since members can never name someone else as the completer.
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated',
+        'authenticated', 'plan-former@test.local', '{"role":"mentee","full_name":"Former Member"}', now(), now());
+do $$
+declare v uuid; r record;
+begin
+  insert into public.mentorship_milestones (objective_id, connection_id, title)
+  select id, connection_id, 'Completed by a former member'
+  from public.mentorship_objectives
+  where connection_id = '00000000-0000-0000-0000-0000000000d2' and title = 'abc'
+  returning id into v;
+  update public.mentorship_milestones set completed_at = now() where id = v;
+  update public.mentorship_milestones set completed_by = '00000000-0000-0000-0000-00000000000a' where id = v;
+  delete from public.profiles where id = '00000000-0000-0000-0000-00000000000a';
+  select completed_at, completed_by into r from public.mentorship_milestones where id = v;
+  if r.completed_by is not null or r.completed_at is null then
+    raise exception 'FAIL 22l: profile deletion did not clear completed_by cleanly';
+  end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- TEST 23: fictional demo accounts and real members are kept apart (#109).
 -- 08 is a demo Mentee and 09 a demo Mentor (app_metadata.fictional = true);
 -- 10 is a real Mentor. 01 (Mia) is the real Mentee.
 insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, raw_app_meta_data, created_at, updated_at)
 values
-  ('00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'demo-mentee@test.local',
+  ('00000000-0000-0000-0000-000000000018', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'demo-mentee@test.local',
    '{"role":"mentee","full_name":"Dana Demo"}', '{"fictional":true}', now(), now()),
-  ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'demo-mentor@test.local',
+  ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'demo-mentor@test.local',
    '{"role":"mentor","full_name":"Dex Demo"}', '{"fictional":true}', now(), now()),
-  ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'real-mentor@test.local',
+  ('00000000-0000-0000-0000-000000000020', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'real-mentor@test.local',
    '{"role":"mentor","full_name":"Rae Real"}', '{}', now(), now());
 -- Two statements: changing skills clears the embedding (zz_invalidate_profile_embedding).
 update public.profiles set skills = '{Kestrel}'
-where id in ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000010');
+where id in ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000020');
 update public.profiles set embedding = (
   select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
   from generate_series(1, 384) i)
-where id in ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000010');
+where id in ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000020');
 
 -- 22 (server side): callers with no signed-in member still see both kinds.
 do $$ begin
@@ -920,174 +1315,174 @@ do $$ begin
      or (select count(*) from public.match_mentors(
            (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
             from generate_series(1, 384) i), 50)
-         where id in ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000010')) <> 2 then
-    raise exception 'FAIL 22 (server side): discovery without a signed-in member lost an account kind';
+         where id in ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000020')) <> 2 then
+    raise exception 'FAIL 23 (server side): discovery without a signed-in member lost an account kind';
   end if;
 end $$;
 
--- 22a: discovery offers only Mentors of the caller's kind.
+-- 23a: discovery offers only Mentors of the caller's kind.
 select pg_temp.impersonate('00000000-0000-0000-0000-000000000001');
 do $$ begin
   if exists (select 1 from public.search_mentors('Kestrel', 10)
-             where id = '00000000-0000-0000-0000-000000000009')
+             where id = '00000000-0000-0000-0000-000000000019')
      or exists (select 1 from public.match_mentors(
            (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
             from generate_series(1, 384) i), 50)
-         where id = '00000000-0000-0000-0000-000000000009') then
-    raise exception 'FAIL 22a: a real Mentee was offered a demo Mentor';
+         where id = '00000000-0000-0000-0000-000000000019') then
+    raise exception 'FAIL 23a: a real Mentee was offered a demo Mentor';
   end if;
   if not exists (select 1 from public.search_mentors('Kestrel', 10)
-                 where id = '00000000-0000-0000-0000-000000000010')
+                 where id = '00000000-0000-0000-0000-000000000020')
      or not exists (select 1 from public.match_mentors(
            (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
             from generate_series(1, 384) i), 50)
-         where id = '00000000-0000-0000-0000-000000000010') then
-    raise exception 'FAIL 22a: a real Mentee was not offered a real Mentor';
+         where id = '00000000-0000-0000-0000-000000000020') then
+    raise exception 'FAIL 23a: a real Mentee was not offered a real Mentor';
   end if;
   if exists (select 1 from public.profiles p
-             where p.id = '00000000-0000-0000-0000-000000000009' and p.same_account_kind)
+             where p.id = '00000000-0000-0000-0000-000000000019' and p.same_account_kind)
      or not exists (select 1 from public.profiles p
-                    where p.id = '00000000-0000-0000-0000-000000000010' and p.same_account_kind) then
-    raise exception 'FAIL 22a: same_account_kind is wrong for a real Mentee';
+                    where p.id = '00000000-0000-0000-0000-000000000020' and p.same_account_kind) then
+    raise exception 'FAIL 23a: same_account_kind is wrong for a real Mentee';
   end if;
 end $$;
-select pg_temp.impersonate('00000000-0000-0000-0000-000000000008');
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000018');
 do $$ begin
   if exists (select 1 from public.search_mentors('Kestrel', 10)
-             where id <> '00000000-0000-0000-0000-000000000009')
+             where id <> '00000000-0000-0000-0000-000000000019')
      or exists (select 1 from public.match_mentors(
            (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
             from generate_series(1, 384) i), 50)
-         where id <> '00000000-0000-0000-0000-000000000009') then
-    raise exception 'FAIL 22a: a demo Mentee was offered a real Mentor';
+         where id <> '00000000-0000-0000-0000-000000000019') then
+    raise exception 'FAIL 23a: a demo Mentee was offered a real Mentor';
   end if;
   if not exists (select 1 from public.search_mentors('Kestrel', 10)
-                 where id = '00000000-0000-0000-0000-000000000009')
+                 where id = '00000000-0000-0000-0000-000000000019')
      or not exists (select 1 from public.match_mentors(
            (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
             from generate_series(1, 384) i), 50)
-         where id = '00000000-0000-0000-0000-000000000009') then
-    raise exception 'FAIL 22a: a demo Mentee was not offered a demo Mentor';
+         where id = '00000000-0000-0000-0000-000000000019') then
+    raise exception 'FAIL 23a: a demo Mentee was not offered a demo Mentor';
   end if;
   if not exists (select 1 from public.profiles p
-                 where p.id = '00000000-0000-0000-0000-000000000009' and p.same_account_kind)
+                 where p.id = '00000000-0000-0000-0000-000000000019' and p.same_account_kind)
      or exists (select 1 from public.profiles p
-                where p.id = '00000000-0000-0000-0000-000000000010' and p.same_account_kind) then
-    raise exception 'FAIL 22a: same_account_kind is wrong for a demo Mentee';
+                where p.id = '00000000-0000-0000-0000-000000000020' and p.same_account_kind) then
+    raise exception 'FAIL 23a: same_account_kind is wrong for a demo Mentee';
   end if;
 end $$;
 
--- 22b: a request across the two kinds is refused in both directions, with
+-- 23b: a request across the two kinds is refused in both directions, with
 -- the exact message the app maps; same-kind requests still work.
 do $$ begin
   begin
     insert into public.mentorship_requests (mentee_id, mentor_id, message)
-    values (auth.uid(), '00000000-0000-0000-0000-000000000010', 'demo to real');
-    raise exception 'FAIL 22b: a demo Mentee sent a request to a real Mentor';
+    values (auth.uid(), '00000000-0000-0000-0000-000000000020', 'demo to real');
+    raise exception 'FAIL 23b: a demo Mentee sent a request to a real Mentor';
   exception when check_violation then
     if sqlerrm <> 'demo accounts and members cannot be paired' then
-      raise exception 'FAIL 22b: unexpected refusal: %', sqlerrm;
+      raise exception 'FAIL 23b: unexpected refusal: %', sqlerrm;
     end if;
   end;
 end $$;
 insert into public.mentorship_requests (id, mentee_id, mentor_id, message)
-values ('00000000-0000-0000-0000-0000000000c1', auth.uid(), '00000000-0000-0000-0000-000000000009', 'demo to demo');
+values ('00000000-0000-0000-0000-0000000000e1', auth.uid(), '00000000-0000-0000-0000-000000000019', 'demo to demo');
 select pg_temp.impersonate('00000000-0000-0000-0000-000000000001');
 do $$ begin
   begin
     insert into public.mentorship_requests (mentee_id, mentor_id, message)
-    values (auth.uid(), '00000000-0000-0000-0000-000000000009', 'real to demo');
-    raise exception 'FAIL 22b: a real Mentee sent a request to a demo Mentor';
+    values (auth.uid(), '00000000-0000-0000-0000-000000000019', 'real to demo');
+    raise exception 'FAIL 23b: a real Mentee sent a request to a demo Mentor';
   exception when check_violation then
     if sqlerrm <> 'demo accounts and members cannot be paired' then
-      raise exception 'FAIL 22b: unexpected refusal: %', sqlerrm;
+      raise exception 'FAIL 23b: unexpected refusal: %', sqlerrm;
     end if;
   end;
 end $$;
 insert into public.mentorship_requests (id, mentee_id, mentor_id, message)
-values ('00000000-0000-0000-0000-0000000000c2', auth.uid(), '00000000-0000-0000-0000-000000000010', 'real to real');
+values ('00000000-0000-0000-0000-0000000000e2', auth.uid(), '00000000-0000-0000-0000-000000000020', 'real to real');
 select pg_temp.reset_role();
 
--- 22c: the refusal holds for privileged callers too, on requests and connections.
+-- 23c: the refusal holds for privileged callers too, on requests and connections.
 do $$ begin
   begin
     insert into public.mentorship_requests (mentee_id, mentor_id, message)
-    values ('00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000010', 'as postgres');
-    raise exception 'FAIL 22c: postgres created a cross request';
+    values ('00000000-0000-0000-0000-000000000018', '00000000-0000-0000-0000-000000000020', 'as postgres');
+    raise exception 'FAIL 23c: postgres created a cross request';
   exception when check_violation then null;
   end;
   begin
     insert into public.connections (request_id, mentee_id, mentor_id)
-    values ('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000001',
-            '00000000-0000-0000-0000-000000000009');
-    raise exception 'FAIL 22c: postgres created a cross connection';
+    values ('00000000-0000-0000-0000-0000000000e2', '00000000-0000-0000-0000-000000000001',
+            '00000000-0000-0000-0000-000000000019');
+    raise exception 'FAIL 23c: postgres created a cross connection';
   exception when check_violation then null;
   end;
   begin
-    update public.mentorship_requests set mentor_id = '00000000-0000-0000-0000-000000000009'
-    where id = '00000000-0000-0000-0000-0000000000c2';
-    raise exception 'FAIL 22c: a request was moved across the two kinds';
+    update public.mentorship_requests set mentor_id = '00000000-0000-0000-0000-000000000019'
+    where id = '00000000-0000-0000-0000-0000000000e2';
+    raise exception 'FAIL 23c: a request was moved across the two kinds';
   exception when check_violation then null;
   end;
 end $$;
 
--- 22d: same-kind acceptance creates the connection for both kinds.
-select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
-select public.respond_to_request('00000000-0000-0000-0000-0000000000c1', true);
-select pg_temp.impersonate('00000000-0000-0000-0000-000000000010');
-select public.respond_to_request('00000000-0000-0000-0000-0000000000c2', true);
+-- 23d: same-kind acceptance creates the connection for both kinds.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000019');
+select public.respond_to_request('00000000-0000-0000-0000-0000000000e1', true);
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000020');
+select public.respond_to_request('00000000-0000-0000-0000-0000000000e2', true);
 select pg_temp.reset_role();
 do $$ begin
-  if not exists (select 1 from public.connections where request_id = '00000000-0000-0000-0000-0000000000c1')
-     or not exists (select 1 from public.connections where request_id = '00000000-0000-0000-0000-0000000000c2') then
-    raise exception 'FAIL 22d: a same-kind acceptance did not create a connection';
+  if not exists (select 1 from public.connections where request_id = '00000000-0000-0000-0000-0000000000e1')
+     or not exists (select 1 from public.connections where request_id = '00000000-0000-0000-0000-0000000000e2') then
+    raise exception 'FAIL 23d: a same-kind acceptance did not create a connection';
   end if;
 end $$;
 
--- 22e: a cross request created before the migration cannot be accepted, and
+-- 23e: a cross request created before the migration cannot be accepted, and
 -- can still be declined. The trigger is switched off only to plant the fixture.
 alter table public.mentorship_requests disable trigger enforce_same_account_kind;
 insert into public.mentorship_requests (id, mentee_id, mentor_id, message)
-values ('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-000000000001',
-        '00000000-0000-0000-0000-000000000009', 'legacy cross request');
+values ('00000000-0000-0000-0000-0000000000e3', '00000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000019', 'legacy cross request');
 alter table public.mentorship_requests enable trigger enforce_same_account_kind;
-select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000019');
 do $$ begin
   begin
-    perform public.respond_to_request('00000000-0000-0000-0000-0000000000c3', true);
-    raise exception 'FAIL 22e: a legacy cross request was accepted';
+    perform public.respond_to_request('00000000-0000-0000-0000-0000000000e3', true);
+    raise exception 'FAIL 23e: a legacy cross request was accepted';
   exception when check_violation then
     if sqlerrm <> 'demo accounts and members cannot be paired' then
-      raise exception 'FAIL 22e: unexpected refusal: %', sqlerrm;
+      raise exception 'FAIL 23e: unexpected refusal: %', sqlerrm;
     end if;
   end;
 end $$;
 select pg_temp.reset_role();
 do $$ begin
   if (select status from public.mentorship_requests
-      where id = '00000000-0000-0000-0000-0000000000c3') <> 'pending'
+      where id = '00000000-0000-0000-0000-0000000000e3') <> 'pending'
      or exists (select 1 from public.connections
-                where request_id = '00000000-0000-0000-0000-0000000000c3') then
-    raise exception 'FAIL 22e: the refused acceptance changed the request or connections';
+                where request_id = '00000000-0000-0000-0000-0000000000e3') then
+    raise exception 'FAIL 23e: the refused acceptance changed the request or connections';
   end if;
 end $$;
-select pg_temp.impersonate('00000000-0000-0000-0000-000000000009');
-select public.respond_to_request('00000000-0000-0000-0000-0000000000c3', false);
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000019');
+select public.respond_to_request('00000000-0000-0000-0000-0000000000e3', false);
 select pg_temp.reset_role();
 do $$ begin
   if (select status from public.mentorship_requests
-      where id = '00000000-0000-0000-0000-0000000000c3') <> 'declined' then
-    raise exception 'FAIL 22e: a legacy cross request could not be declined';
+      where id = '00000000-0000-0000-0000-0000000000e3') <> 'declined' then
+    raise exception 'FAIL 23e: a legacy cross request could not be declined';
   end if;
 end $$;
 
--- 22f: clients cannot call the raw marker lookup, and anonymous callers
+-- 23f: clients cannot call the raw marker lookup, and anonymous callers
 -- cannot compare account kinds.
 do $$ begin
   if has_function_privilege('authenticated', 'public.is_fictional_account(uuid)', 'execute')
      or has_function_privilege('anon', 'public.is_fictional_account(uuid)', 'execute')
      or has_function_privilege('anon', 'public.shares_account_kind(uuid)', 'execute') then
-    raise exception 'FAIL 22f: a client role can execute an account kind helper';
+    raise exception 'FAIL 23f: a client role can execute an account kind helper';
   end if;
 end $$;
 

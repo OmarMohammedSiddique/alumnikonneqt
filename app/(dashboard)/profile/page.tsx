@@ -40,31 +40,37 @@ export default async function ProfilePage() {
       <PageHeading title="Your profile">
         Help your community understand your experience, interests, and the guidance you seek or offer.
       </PageHeading>
-      <ProfileForm
-        userId={user.id}
-        userEmail={user.email}
-        profile={details}
-        hasMatchProfile={Boolean(embedding)}
-      />
-      {details.role === "mentor" && (
-        <AvailabilityCard acceptingRequests={accepting_requests ?? true} />
-      )}
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-        {user.email && (
-          <p>
-            Account email: <span className="font-medium text-foreground">{user.email}</span>
-          </p>
-        )}
-        <Link href="/profile/email-preferences" className="underline underline-offset-4">
-          Manage email preferences or unsubscribe
-        </Link>
+      <Link href="/profile/photo" className="mb-6 inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">View or change your profile picture</Link>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] lg:items-start xl:gap-10">
+        <ProfileForm
+          userId={user.id}
+          userEmail={user.email}
+          profile={details}
+          hasMatchProfile={Boolean(embedding)}
+        />
+        {/* Settings column: beside the form on wide screens, below it on phones and tablets. */}
+        <div className="@container grid min-w-0 gap-6">
+          {details.role === "mentor" && (
+            <AvailabilityCard acceptingRequests={accepting_requests ?? true} />
+          )}
+          <PrivacySettingsCard
+            memberVisible={member_visible ?? true}
+            staffHidden={staff_hidden ?? false}
+            isVisible={is_visible ?? true}
+            blockedMembers={(blockedMembers as BlockedMember[]) || []}
+          />
+          <div className="grid gap-2 text-sm text-muted-foreground">
+            {user.email && (
+              <p className="break-words">
+                Account email: <span className="font-medium text-foreground">{user.email}</span>
+              </p>
+            )}
+            <Link href="/profile/email-preferences" className="inline-flex min-h-11 items-center justify-self-start underline underline-offset-4">
+              Manage email preferences or unsubscribe
+            </Link>
+          </div>
+        </div>
       </div>
-      <PrivacySettingsCard
-        memberVisible={member_visible ?? true}
-        staffHidden={staff_hidden ?? false}
-        isVisible={is_visible ?? true}
-        blockedMembers={(blockedMembers as BlockedMember[]) || []}
-      />
     </div>
   );
 }
