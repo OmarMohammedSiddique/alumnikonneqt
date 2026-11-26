@@ -199,6 +199,25 @@ try {
     await second.page.getByRole('button', { name: 'Accept', exact: true }).click();
     for (let i = 0; i < 100 && ok(await admin.from('connections').select('id'), 'Connection').length === 0; i++) await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(ok(await admin.from('connections').select('id'), 'Connection count').length, 1, 'Fixture connection was not created');
+    // Mentorship plan (#187): scan the empty plan with its example objectives
+    // first, then fill it in so badges, progress bars and milestone controls
+    // are scanned in the main pass below.
+    for (const theme of THEMES) {
+      await setTheme(member.page, theme);
+      await member.page.goto(app.origin + '/requests');
+      await scan(member.page, { path: '/requests', theme, account: 'member', state: 'empty mentorship plan' });
+    }
+    const [connection] = ok(await admin.from('connections').select('id'), 'Fixture connection');
+    const objective = ok(await admin.from('mentorship_objectives')
+      .insert({ connection_id: connection.id, title: 'Move into a backend engineering role' }).select('id').single(), 'Fixture objective');
+    const pastDate = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
+    const milestones = ok(await admin.from('mentorship_milestones').insert([
+      { objective_id: objective.id, connection_id: connection.id, title: 'Finish a PostgreSQL course', target_date: pastDate },
+      { objective_id: objective.id, connection_id: connection.id, title: 'Build a small API project', target_date: pastDate },
+      { objective_id: objective.id, connection_id: connection.id, title: 'Practise a technical interview' },
+    ]).select('id, title'), 'Fixture milestones');
+    const finished = milestones.find(item => item.title === 'Finish a PostgreSQL course');
+    ok(await admin.from('mentorship_milestones').update({ completed_at: new Date().toISOString() }).eq('id', finished.id), 'Fixture milestone done');
 
     for (const theme of THEMES) {
       await setTheme(member.page, theme);

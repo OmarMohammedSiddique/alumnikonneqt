@@ -38,6 +38,7 @@ their own matching vectors.
 - Explainable matches based on shared profile signals.
 - Mentee and mentor onboarding with profile-based cold-start matching.
 - Mentorship request, response, and connection workflows.
+- A shared mentorship plan on each connection: objectives, milestones with target dates, and progress compared with the plan (Overdue, Due soon, On track, Objective met), visible only to the Mentee and Mentor.
 - Moderator and administrator controls with audit logging.
 - A public contact and support page (`/contact`) with one project inbox, `support@alumnikonneqt.com`.
 - Database-enforced authorization through PostgreSQL row-level security.
