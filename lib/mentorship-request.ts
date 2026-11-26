@@ -7,6 +7,34 @@ export interface RequestState {
 
 type Decision = "cancel" | "accept" | "decline";
 
+// Raised by the enforce_same_account_kind trigger (#109) when a request or a
+// connection would pair a fictional demo account with a real member.
+const ACCOUNT_KIND_REFUSAL = "demo accounts and members cannot be paired";
+
+export const ACCOUNT_KIND_REQUEST_MESSAGE =
+  "This request could not be sent. Demo accounts and members cannot send requests to each other.";
+export const ACCOUNT_KIND_ACCEPT_MESSAGE =
+  "This request cannot be accepted. Demo accounts and members cannot be connected with each other.";
+
+interface DatabaseError {
+  code?: string;
+  message?: string;
+}
+
+export function isAccountKindRefusal(error: DatabaseError | null | undefined): boolean {
+  return error?.code === "23514" && error.message === ACCOUNT_KIND_REFUSAL;
+}
+
+/** The message shown when inserting a new mentorship request fails. */
+export function requestInsertErrorMessage(error: DatabaseError): string {
+  if (isAccountKindRefusal(error)) return ACCOUNT_KIND_REQUEST_MESSAGE;
+  if (error.code === "23505") return "You already have a pending request to this mentor.";
+  if (error.code === "42501") {
+    return "This request could not be sent. Only mentees can send requests, and the Mentor must be visible and accepting new requests.";
+  }
+  return "We couldn't send this request right now. Please try again.";
+}
+
 export async function updateMentorshipRequest(
   getClient: () => Promise<SupabaseClient>,
   requestId: string,
@@ -53,6 +81,7 @@ export async function updateMentorshipRequest(
         p_accept: decision === "accept",
       });
       if (error) {
+        if (isAccountKindRefusal(error)) return { error: ACCOUNT_KIND_ACCEPT_MESSAGE, ok: false };
         if (error.code === "P0001" && [
           "request not found",
           "request is not pending",

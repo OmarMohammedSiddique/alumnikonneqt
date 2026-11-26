@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { dispatchNotificationEmails } from "@/lib/notification-dispatch";
 import { createClient } from "@/lib/supabase/server";
-import { updateMentorshipRequest, type RequestState } from "@/lib/mentorship-request";
+import {
+  requestInsertErrorMessage,
+  updateMentorshipRequest,
+  type RequestState,
+} from "@/lib/mentorship-request";
 import { MAX_INTRODUCTION_LENGTH } from "@/lib/form-limits";
 import { isValidUuid } from "@/lib/profile-privacy";
 import { normaliseContact } from "@/lib/connection-journey";
@@ -29,26 +33,15 @@ export async function createRequest(
   if (!user) return { error: "Not authenticated.", ok: false };
 
   // RLS enforces: caller is a mentee, target is a visible mentor, no
-  // duplicate pending request (partial unique index).
+  // duplicate pending request (partial unique index). A trigger refuses a
+  // request between a fictional demo account and a real member (#109).
   const { error } = await supabase.from("mentorship_requests").insert({
     mentee_id: user.id,
     mentor_id: mentorId,
     message,
   });
 
-  if (error) {
-    if (error.code === "23505") {
-      return { error: "You already have a pending request to this mentor.", ok: false };
-    }
-    if (error.code === "42501") {
-      return {
-        error:
-          "This request could not be sent. Only mentees can send requests, and the Mentor must be visible and accepting new requests.",
-        ok: false,
-      };
-    }
-    return { error: "We couldn't send this request right now. Please try again.", ok: false };
-  }
+  if (error) return { error: requestInsertErrorMessage(error), ok: false };
 
   dispatchNotificationEmails();
   revalidatePath("/requests");

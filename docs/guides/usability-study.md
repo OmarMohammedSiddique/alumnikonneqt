@@ -88,6 +88,7 @@ Give this to each participant to read before the session starts. Fill in the bra
 5. Seed the data the tasks need, using fictional accounts only:
    - For a Mentor participant: after they finish task 2, send their account three requests from three fictional Mentee accounts. Two are for task 5. The third is set aside as the member to report and block in task 7, and the scenario for task 5 should name the two people to answer so that the third request is left alone.
    - For a Mentee participant: have at least three fictional Mentor profiles visible, one of which is set aside as the profile to report and block in task 7. Be ready to accept the participant's request from a fictional Mentor account in a separate browser after task 4.
+   - The participant registers an ordinary account, so these seeded accounts must be ordinary accounts too. Do not use the demo mode accounts or any account marked `app_metadata.fictional`: the database keeps demo accounts and real members apart, so the participant would not see them or be able to send them a request (see `docs/guides/demo-mode.md`).
 6. Prepare a fictional sample CV (PDF or Word .docx, under 4 MB) for anyone who wants to try the CV upload.
 
 ### Order of the session

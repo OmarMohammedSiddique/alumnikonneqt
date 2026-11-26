@@ -41,10 +41,11 @@ async function compareModels(signal: AbortSignal) {
   if (running >= 2) return json({ error: "Model comparison is busy. Please retry shortly." }, 503);
 
   // Request-scoped authenticated client: profile privacy and block RLS still apply.
+  // same_account_kind keeps demo accounts and real members apart (#109).
   const [own, candidates] = await Promise.all([
     supabase.from("profiles").select(fields).eq("id", user.id).single(),
     supabase.from("profiles").select(fields).eq("role", "mentor").eq("is_visible", true)
-      .neq("id", user.id).order("id").limit(51),
+      .eq("same_account_kind", true).neq("id", user.id).order("id").limit(51),
   ]);
   if (own.error || candidates.error || !own.data) {
     return json({ error: "Could not load profiles for comparison. Please retry." }, 503);

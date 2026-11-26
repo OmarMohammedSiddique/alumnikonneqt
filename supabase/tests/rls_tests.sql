@@ -1289,6 +1289,203 @@ begin
   end if;
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- TEST 23: fictional demo accounts and real members are kept apart (#109).
+-- 08 is a demo Mentee and 09 a demo Mentor (app_metadata.fictional = true);
+-- 10 is a real Mentor. 01 (Mia) is the real Mentee.
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, raw_app_meta_data, created_at, updated_at)
+values
+  ('00000000-0000-0000-0000-000000000018', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'demo-mentee@test.local',
+   '{"role":"mentee","full_name":"Dana Demo"}', '{"fictional":true}', now(), now()),
+  ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'demo-mentor@test.local',
+   '{"role":"mentor","full_name":"Dex Demo"}', '{"fictional":true}', now(), now()),
+  ('00000000-0000-0000-0000-000000000020', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'real-mentor@test.local',
+   '{"role":"mentor","full_name":"Rae Real"}', '{}', now(), now());
+-- Two statements: changing skills clears the embedding (zz_invalidate_profile_embedding).
+update public.profiles set skills = '{Kestrel}'
+where id in ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000020');
+update public.profiles set embedding = (
+  select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
+  from generate_series(1, 384) i)
+where id in ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000020');
+
+-- 22 (server side): callers with no signed-in member still see both kinds.
+do $$ begin
+  if (select count(*) from public.search_mentors('Kestrel', 10)) <> 2
+     or (select count(*) from public.match_mentors(
+           (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
+            from generate_series(1, 384) i), 50)
+         where id in ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000020')) <> 2 then
+    raise exception 'FAIL 23 (server side): discovery without a signed-in member lost an account kind';
+  end if;
+end $$;
+
+-- 23a: discovery offers only Mentors of the caller's kind.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000001');
+do $$ begin
+  if exists (select 1 from public.search_mentors('Kestrel', 10)
+             where id = '00000000-0000-0000-0000-000000000019')
+     or exists (select 1 from public.match_mentors(
+           (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
+            from generate_series(1, 384) i), 50)
+         where id = '00000000-0000-0000-0000-000000000019') then
+    raise exception 'FAIL 23a: a real Mentee was offered a demo Mentor';
+  end if;
+  if not exists (select 1 from public.search_mentors('Kestrel', 10)
+                 where id = '00000000-0000-0000-0000-000000000020')
+     or not exists (select 1 from public.match_mentors(
+           (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
+            from generate_series(1, 384) i), 50)
+         where id = '00000000-0000-0000-0000-000000000020') then
+    raise exception 'FAIL 23a: a real Mentee was not offered a real Mentor';
+  end if;
+  if exists (select 1 from public.profiles p
+             where p.id = '00000000-0000-0000-0000-000000000019' and p.same_account_kind)
+     or not exists (select 1 from public.profiles p
+                    where p.id = '00000000-0000-0000-0000-000000000020' and p.same_account_kind) then
+    raise exception 'FAIL 23a: same_account_kind is wrong for a real Mentee';
+  end if;
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000018');
+do $$ begin
+  if exists (select 1 from public.search_mentors('Kestrel', 10)
+             where id <> '00000000-0000-0000-0000-000000000019')
+     or exists (select 1 from public.match_mentors(
+           (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
+            from generate_series(1, 384) i), 50)
+         where id <> '00000000-0000-0000-0000-000000000019') then
+    raise exception 'FAIL 23a: a demo Mentee was offered a real Mentor';
+  end if;
+  if not exists (select 1 from public.search_mentors('Kestrel', 10)
+                 where id = '00000000-0000-0000-0000-000000000019')
+     or not exists (select 1 from public.match_mentors(
+           (select array_agg(case when i = 3 then 1.0 else 0.0 end)::extensions.vector(384)
+            from generate_series(1, 384) i), 50)
+         where id = '00000000-0000-0000-0000-000000000019') then
+    raise exception 'FAIL 23a: a demo Mentee was not offered a demo Mentor';
+  end if;
+  if not exists (select 1 from public.profiles p
+                 where p.id = '00000000-0000-0000-0000-000000000019' and p.same_account_kind)
+     or exists (select 1 from public.profiles p
+                where p.id = '00000000-0000-0000-0000-000000000020' and p.same_account_kind) then
+    raise exception 'FAIL 23a: same_account_kind is wrong for a demo Mentee';
+  end if;
+end $$;
+
+-- 23b: a request across the two kinds is refused in both directions, with
+-- the exact message the app maps; same-kind requests still work.
+do $$ begin
+  begin
+    insert into public.mentorship_requests (mentee_id, mentor_id, message)
+    values (auth.uid(), '00000000-0000-0000-0000-000000000020', 'demo to real');
+    raise exception 'FAIL 23b: a demo Mentee sent a request to a real Mentor';
+  exception when check_violation then
+    if sqlerrm <> 'demo accounts and members cannot be paired' then
+      raise exception 'FAIL 23b: unexpected refusal: %', sqlerrm;
+    end if;
+  end;
+end $$;
+insert into public.mentorship_requests (id, mentee_id, mentor_id, message)
+values ('00000000-0000-0000-0000-0000000000e1', auth.uid(), '00000000-0000-0000-0000-000000000019', 'demo to demo');
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000001');
+do $$ begin
+  begin
+    insert into public.mentorship_requests (mentee_id, mentor_id, message)
+    values (auth.uid(), '00000000-0000-0000-0000-000000000019', 'real to demo');
+    raise exception 'FAIL 23b: a real Mentee sent a request to a demo Mentor';
+  exception when check_violation then
+    if sqlerrm <> 'demo accounts and members cannot be paired' then
+      raise exception 'FAIL 23b: unexpected refusal: %', sqlerrm;
+    end if;
+  end;
+end $$;
+insert into public.mentorship_requests (id, mentee_id, mentor_id, message)
+values ('00000000-0000-0000-0000-0000000000e2', auth.uid(), '00000000-0000-0000-0000-000000000020', 'real to real');
+select pg_temp.reset_role();
+
+-- 23c: the refusal holds for privileged callers too, on requests and connections.
+do $$ begin
+  begin
+    insert into public.mentorship_requests (mentee_id, mentor_id, message)
+    values ('00000000-0000-0000-0000-000000000018', '00000000-0000-0000-0000-000000000020', 'as postgres');
+    raise exception 'FAIL 23c: postgres created a cross request';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into public.connections (request_id, mentee_id, mentor_id)
+    values ('00000000-0000-0000-0000-0000000000e2', '00000000-0000-0000-0000-000000000001',
+            '00000000-0000-0000-0000-000000000019');
+    raise exception 'FAIL 23c: postgres created a cross connection';
+  exception when check_violation then null;
+  end;
+  begin
+    update public.mentorship_requests set mentor_id = '00000000-0000-0000-0000-000000000019'
+    where id = '00000000-0000-0000-0000-0000000000e2';
+    raise exception 'FAIL 23c: a request was moved across the two kinds';
+  exception when check_violation then null;
+  end;
+end $$;
+
+-- 23d: same-kind acceptance creates the connection for both kinds.
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000019');
+select public.respond_to_request('00000000-0000-0000-0000-0000000000e1', true);
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000020');
+select public.respond_to_request('00000000-0000-0000-0000-0000000000e2', true);
+select pg_temp.reset_role();
+do $$ begin
+  if not exists (select 1 from public.connections where request_id = '00000000-0000-0000-0000-0000000000e1')
+     or not exists (select 1 from public.connections where request_id = '00000000-0000-0000-0000-0000000000e2') then
+    raise exception 'FAIL 23d: a same-kind acceptance did not create a connection';
+  end if;
+end $$;
+
+-- 23e: a cross request created before the migration cannot be accepted, and
+-- can still be declined. The trigger is switched off only to plant the fixture.
+alter table public.mentorship_requests disable trigger enforce_same_account_kind;
+insert into public.mentorship_requests (id, mentee_id, mentor_id, message)
+values ('00000000-0000-0000-0000-0000000000e3', '00000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000019', 'legacy cross request');
+alter table public.mentorship_requests enable trigger enforce_same_account_kind;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000019');
+do $$ begin
+  begin
+    perform public.respond_to_request('00000000-0000-0000-0000-0000000000e3', true);
+    raise exception 'FAIL 23e: a legacy cross request was accepted';
+  exception when check_violation then
+    if sqlerrm <> 'demo accounts and members cannot be paired' then
+      raise exception 'FAIL 23e: unexpected refusal: %', sqlerrm;
+    end if;
+  end;
+end $$;
+select pg_temp.reset_role();
+do $$ begin
+  if (select status from public.mentorship_requests
+      where id = '00000000-0000-0000-0000-0000000000e3') <> 'pending'
+     or exists (select 1 from public.connections
+                where request_id = '00000000-0000-0000-0000-0000000000e3') then
+    raise exception 'FAIL 23e: the refused acceptance changed the request or connections';
+  end if;
+end $$;
+select pg_temp.impersonate('00000000-0000-0000-0000-000000000019');
+select public.respond_to_request('00000000-0000-0000-0000-0000000000e3', false);
+select pg_temp.reset_role();
+do $$ begin
+  if (select status from public.mentorship_requests
+      where id = '00000000-0000-0000-0000-0000000000e3') <> 'declined' then
+    raise exception 'FAIL 23e: a legacy cross request could not be declined';
+  end if;
+end $$;
+
+-- 23f: clients cannot call the raw marker lookup, and anonymous callers
+-- cannot compare account kinds.
+do $$ begin
+  if has_function_privilege('authenticated', 'public.is_fictional_account(uuid)', 'execute')
+     or has_function_privilege('anon', 'public.is_fictional_account(uuid)', 'execute')
+     or has_function_privilege('anon', 'public.shares_account_kind(uuid)', 'execute') then
+    raise exception 'FAIL 23f: a client role can execute an account kind helper';
+  end if;
+end $$;
+
 select 'ALL RLS TESTS PASSED' as result;
 
 rollback;
