@@ -4,6 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { Flag, MoreVertical, ShieldAlert } from "lucide-react";
 import { ReportDialog } from "./report-dialog";
 import { BlockDialog } from "./block-dialog";
+import { successorPicker } from "@/lib/focus-after-removal";
+
+const TRIGGER_ATTRIBUTE = "data-safety-trigger";
+
+// The page heading, made focusable without joining the Tab order.
+function pageHeading(): HTMLElement | null {
+  const heading = document.querySelector<HTMLElement>("main h1") ?? document.querySelector<HTMLElement>("h1");
+  if (heading && !heading.hasAttribute("tabindex")) heading.tabIndex = -1;
+  return heading;
+}
 
 interface SafetyActionsMenuProps {
   targetId: string;
@@ -22,6 +32,17 @@ export function SafetyActionsMenu({
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const successorRef = useRef<() => HTMLElement | null>(() => null);
+
+  // Blocking can remove this member's card, and the trigger with it. Focus then
+  // moves to the safety menu of the nearest remaining card, or the page heading.
+  const openBlockDialog = () => {
+    const trigger = triggerRef.current;
+    const triggers = Array.from(document.querySelectorAll<HTMLElement>(`[${TRIGGER_ATTRIBUTE}]`));
+    successorRef.current = trigger ? successorPicker(triggers, trigger) : () => null;
+    setMenuOpen(false);
+    setBlockOpen(true);
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -40,6 +61,7 @@ export function SafetyActionsMenu({
         <button
           type="button"
           ref={triggerRef}
+          data-safety-trigger=""
           onClick={() => setMenuOpen((prev) => !prev)}
           className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary transition-colors"
           aria-label={`Safety options for ${targetName}`}
@@ -75,10 +97,7 @@ export function SafetyActionsMenu({
               <button
                 type="button"
                 role="menuitem"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setBlockOpen(true);
-                }}
+                onClick={openBlockDialog}
                 className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-destructive hover:bg-destructive/10 focus:bg-destructive/10 focus:outline-hidden"
               >
                 <ShieldAlert className="size-3.5" />
@@ -108,6 +127,7 @@ export function SafetyActionsMenu({
           onClose={() => setBlockOpen(false)}
           onBlocked={() => onBlocked?.()}
           returnFocusRef={triggerRef}
+          fallbackFocus={() => successorRef.current() ?? pageHeading()}
         />
       )}
     </>

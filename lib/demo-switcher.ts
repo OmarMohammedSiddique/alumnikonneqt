@@ -66,6 +66,21 @@ export function isUsableDemoKey(key: string | undefined): key is string {
 
 export const DEMO_UNAVAILABLE = "Demo accounts are not available right now.";
 
+export interface SignOutDeps {
+  signOut: () => Promise<unknown>;
+  deleteCookie: (name: string) => void;
+}
+
+/**
+ * Signing out also ends demo mode in this browser, so the next person to use
+ * it cannot open the switcher. The cookie goes first, so a failed sign-out
+ * still forgets the presenter (#147).
+ */
+export async function endBrowserSession(deps: SignOutDeps): Promise<void> {
+  deps.deleteCookie(DEMO_PRESENTER_COOKIE);
+  await deps.signOut();
+}
+
 export interface DemoSwitchDeps {
   enabled: boolean;
   presenter: boolean;

@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rejectCrossOrigin } from "@/lib/request-origin";
 
 // Returns ranked mentor matches for the signed-in user: pgvector cosine
 // similarity plus skill-overlap explainability, computed in Postgres under
 // the caller's RLS context.
 export async function POST(request: Request) {
+  const rejected = rejectCrossOrigin(request.headers);
+  if (rejected) return rejected;
   const supabase = await createClient();
   const {
     data: { user },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dispatchNotificationEmails } from "@/lib/notification-dispatch";
 import { createClient } from "@/lib/supabase/server";
+import { rejectCrossOrigin } from "@/lib/request-origin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   buildProfileEmbeddingText,
@@ -16,7 +17,9 @@ import {
 // Regenerates the signed-in user's profile embedding. Called after profile
 // save. Embedding generation is server-side only (non-negotiable #2), and the
 // embedding column is writable only via the service role.
-export async function POST() {
+export async function POST(request: Request) {
+  const rejected = rejectCrossOrigin(request.headers);
+  if (rejected) return rejected;
   const supabase = await createClient();
   const {
     data: { user },

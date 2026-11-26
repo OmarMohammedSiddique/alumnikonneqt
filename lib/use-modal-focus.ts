@@ -11,6 +11,9 @@ interface ModalFocusOptions {
   // Where focus goes when the dialog closes. Needed when the control that
   // opened the dialog (a menu item, for example) no longer exists by then.
   returnFocusRef?: RefObject<HTMLElement | null>;
+  // Used when the return target has been removed from the page by the time
+  // the dialog closes, for example when blocking removes the member's card.
+  fallbackFocus?: () => HTMLElement | null;
 }
 
 // Keyboard behaviour for a modal dialog (WCAG 2.4.3 and 2.1.2): focus moves
@@ -21,13 +24,16 @@ export function useModalFocus<T extends HTMLElement>({
   isOpen,
   onClose,
   returnFocusRef,
+  fallbackFocus,
 }: ModalFocusOptions): RefObject<T | null> {
   const containerRef = useRef<T>(null);
   const onCloseRef = useRef(onClose);
+  const fallbackFocusRef = useRef(fallbackFocus);
 
   useEffect(() => {
     onCloseRef.current = onClose;
-  }, [onClose]);
+    fallbackFocusRef.current = fallbackFocus;
+  }, [onClose, fallbackFocus]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -79,6 +85,7 @@ export function useModalFocus<T extends HTMLElement>({
       document.removeEventListener("keydown", onKeyDown);
       const target = returnTarget ?? previous;
       if (target && target.isConnected) target.focus();
+      else fallbackFocusRef.current?.()?.focus();
     };
   }, [isOpen, returnFocusRef]);
 

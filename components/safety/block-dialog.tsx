@@ -13,6 +13,7 @@ interface BlockDialogProps {
   onClose: () => void;
   onBlocked?: () => void;
   returnFocusRef?: RefObject<HTMLElement | null>;
+  fallbackFocus?: () => HTMLElement | null;
 }
 
 export function BlockDialog({
@@ -22,11 +23,12 @@ export function BlockDialog({
   onClose,
   onBlocked,
   returnFocusRef,
+  fallbackFocus,
 }: BlockDialogProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const dialogRef = useModalFocus<HTMLDivElement>({ isOpen, onClose, returnFocusRef });
+  const dialogRef = useModalFocus<HTMLDivElement>({ isOpen, onClose, returnFocusRef, fallbackFocus });
 
   if (!isOpen) return null;
 

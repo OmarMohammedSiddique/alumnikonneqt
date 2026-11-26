@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rejectCrossOrigin } from "@/lib/request-origin";
 import { CV_MAX_BYTES, detectCvKind, extractCvSuggestions } from "@/lib/cv-extract";
 import { CvReadError, readCvText } from "@/lib/cv-file";
 import { EmbedGuard } from "@/lib/embedding/embed-guard";
@@ -18,6 +19,8 @@ const NO_STORE = { "Cache-Control": "private, no-store" };
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status, headers: NO_STORE });
 
 export async function POST(request: Request) {
+  const rejected = rejectCrossOrigin(request.headers);
+  if (rejected) return rejected;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return fail("Sign in to read a CV.", 401);

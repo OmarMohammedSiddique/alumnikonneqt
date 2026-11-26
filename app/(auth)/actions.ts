@@ -12,6 +12,7 @@ import { getIdentityCollectionError } from "@/lib/registration-privacy";
 import { getPasswordError } from "@/lib/signup-validation";
 import { saveProfilePhoto, validateProfilePhoto } from "@/lib/profile-photo";
 import { getSafeSignInRedirect } from "@/lib/auth-redirect";
+import { endBrowserSession } from "@/lib/demo-switcher";
 import { CAPTCHA_FAILED_MESSAGE, captchaOption, isCaptchaError, readCaptchaToken } from "@/lib/turnstile";
 
 export interface AuthState {
@@ -138,7 +139,11 @@ export async function signInWithArrival(previous: AuthState, formData: FormData)
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const cookieStore = await cookies();
+  await endBrowserSession({
+    signOut: () => supabase.auth.signOut(),
+    deleteCookie: (name) => cookieStore.delete(name),
+  });
   redirect("/login");
 }
 
